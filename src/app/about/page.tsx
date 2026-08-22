@@ -46,7 +46,7 @@ const FALLBACK_BOARD_MEMBERS: BoardMember[] = [
     status: 'Dr.',
     full_name: 'Keshav Bhasyal, PhD',
     title: 'Director',
-    image_url: '/images/Personalities/Per_4.jpeg',
+    image_url: '/images/Personalities/Per_4.png',
     bio: 'Dr. Keshav Bhasyal is an international relations and labour policy expert with over 15 years of experience in policy development, labour migration, employment, and social protection. He holds a PhD in International Relations from Jawaharlal Nehru University and has worked with the ILO, World Bank, Asian Development Bank, the Government of Nepal, and Tribhuvan University on policy reform and institutional development.',
   },
   {
@@ -82,28 +82,28 @@ const FALLBACK_EMPLOYEES: EmployeeUser[] = [
     status: 'Mr.',
     full_name: 'Sunil Pandey',
     title: 'Production Manager',
-    avatar_url: '/team/prodManager.jpg',
+    avatar_url: '/team/emp_1.jpg',
   },
   {
     id: 6,
     status: 'Mrs.',
     full_name: 'Subhadra Pandey Thapa',
     title: 'Company Secretary',
-    avatar_url: '/team/subhadra-pandey.jpg',
+    avatar_url: '/team/emp_2.jpg',
   },
   {
     id: 7,
     status: 'Mr.',
     full_name: 'Krishna Thapa',
     title: 'Technical Head',
-    avatar_url: '/team/technicalHead.jpg',
+    avatar_url: '/team/emp_3.jpg',
   },
   {
     id: 3,
     status: 'Mr.',
     full_name: 'Gokarna Budhathoki',
     title: 'Plant Assistant',
-    avatar_url: '/team/.jpg',
+    avatar_url: '/team/emp_4.jpg',
   },
 ];
 
@@ -128,39 +128,69 @@ const staggerContainer = {
 
 function BoardMemberCard({ member }: { member: BoardMember }) {
   const [imgSrc, setImgSrc] = useState<string>(member.image_url || IMAGE.chairman);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   const statusPrefix = member.status ? `${member.status.trim()} ` : '';
+  const showFullBio = isExpanded || isHovered;
 
   return (
     <motion.div 
       variants={fadeInUp}
-      whileHover={{ y: -8, scale: 1.01 }}
+      whileHover={{ y: -6 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-300 flex flex-col h-full group"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="bg-white rounded-3xl shadow-sm border border-gray-100 p-7 hover:shadow-xl transition-all duration-300 flex flex-col items-center w-full group"
     >
-      <div className="relative w-full h-80 bg-gray-100 overflow-hidden">
+      {/* 1. Perfect Circular Avatar */}
+      <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gray-50 mb-5 shrink-0 border-2 border-pcfi-green-100 group-hover:border-pcfi-green-600 transition-colors shadow-sm">
         <Image
           src={imgSrc}
           alt={member.full_name}
           fill
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          className="object-cover object-top group-hover:scale-108 transition-transform duration-500 ease-out"
+          sizes="128px"
+          className="object-cover object-top group-hover:scale-105 transition-transform duration-500 ease-out"
           onError={() => setImgSrc(IMAGE.chairman)}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
-      <div className="p-6 flex-1 flex flex-col justify-between">
-        <div>
-          <h3 className="font-display text-xl font-bold text-gray-900 group-hover:text-pcfi-green-800 transition-colors">
-            {statusPrefix && <span className="text-pcfi-green-700 font-medium mr-1">{statusPrefix}</span>}
-            {member.full_name}
-          </h3>
-          <p className="text-sm font-semibold text-pcfi-gold-600 mb-3">{member.title}</p>
-          {member.bio && (
-            <p className="text-gray-600 text-sm leading-relaxed line-clamp-4">{member.bio}</p>
+
+      {/* 2. Header Information (Centered) */}
+      <div className="text-center mb-4">
+        <h3 className="font-display text-xl font-bold text-pcfi-green-900 leading-snug">
+          {statusPrefix && <span className="font-medium">{statusPrefix}</span>}
+          {member.full_name}
+        </h3>
+        <p className="text-xs font-semibold uppercase tracking-wider text-pcfi-gold-600 mt-1">
+          {member.title}
+        </p>
+      </div>
+
+      {/* 3. Bio Paragraph (Left-Aligned for Clean Readability) */}
+      {member.bio && (
+        <div className="w-full pt-4 border-t border-gray-100 text-left">
+          <p 
+            className={`text-gray-600 text-sm leading-relaxed transition-all duration-300 ${
+              showFullBio ? '' : 'line-clamp-4'
+            }`}
+          >
+            {member.bio}
+          </p>
+          {member.bio.length > 140 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsExpanded(!isExpanded);
+              }}
+              className="mt-3 text-xs font-semibold text-pcfi-green-700 hover:text-pcfi-green-900 inline-flex items-center gap-1 focus:outline-none"
+            >
+              <span>{showFullBio ? 'Read Less' : 'Read Full Bio'}</span>
+              <span className="text-base leading-none">{showFullBio ? '↑' : '→'}</span>
+            </button>
           )}
         </div>
-      </div>
+      )}
     </motion.div>
   );
 }
@@ -222,7 +252,6 @@ export default function AboutPage() {
           fetchEmployeesFn.catch((err) => { console.error('Error fetching Employees:', err); return null; }),
         ]);
 
-        // Helper to extract data from multiple backend payload patterns
         const extractData = (res: any) => {
           if (!res) return [];
           if (Array.isArray(res)) return res;
@@ -231,7 +260,6 @@ export default function AboutPage() {
           return [];
         };
 
-        // Handle Content Blocks
         const aboutData = extractData(aboutRes);
         if (aboutData.length > 0) {
           const map: Record<string, ContentBlock> = {};
@@ -239,18 +267,15 @@ export default function AboutPage() {
           setBlocks(map);
         }
 
-        // Handle Contact Info
         if (contactRes?.data?.metadata) {
           setContact(contactRes.data.metadata as ContactInfo);
         } else if (contactRes?.metadata) {
           setContact(contactRes.metadata as ContactInfo);
         }
 
-        // Board Members Fallback Handling
         const boardData = extractData(boardRes);
         setBoardMembers(boardData.length > 0 ? boardData : FALLBACK_BOARD_MEMBERS);
 
-        // Employees Fallback Handling
         const empData = extractData(employeeRes);
         setEmployees(empData.length > 0 ? empData : FALLBACK_EMPLOYEES);
 
@@ -300,7 +325,7 @@ export default function AboutPage() {
             {isLoading
               ? 'Loading…'
               : blocks.about_company?.content ||
-                'PCFI Pvt. Ltd. is a trusted manufacturer of high-quality bale silage, dedicated to improving livestock nutrition and supporting sustainable agricultural practices.'}
+                'PCFL Ltd. is a trusted manufacturer of high-quality bale silage, dedicated to improving livestock nutrition and supporting sustainable agricultural practices.'}
           </p>
         </div>
       </motion.section>
@@ -337,7 +362,7 @@ export default function AboutPage() {
               <h2 className="section-heading">Message from our Chairman</h2>
               <blockquote className="text-gray-700 text-lg leading-relaxed italic border-l-4 border-pcfi-gold-500 pl-6">
                 {blocks.chairman_message?.content ||
-                  '"At Cattle Fodder Nepal, we are driven by a mission to empower farmers with sustainable, high-quality fodder solutions."'}
+                  '"At PCFL, we are driven by a mission to empower farmers with sustainable, high-quality fodder solutions."'}
               </blockquote>
             </motion.div>
           </div>
@@ -367,7 +392,7 @@ export default function AboutPage() {
               </h3>
               <p className="text-pcfi-green-100 leading-relaxed text-sm">
                 {blocks.mission?.content ||
-                  'We are committed to empowering farmers and livestock owners with innovative, sustainable, and high-quality feed solutions.'}
+                  'To provide farmers with innovative, reliable, and sustainable silage solutions that enhance livestock health, increase productivity, and secure a brighter agricultural future.'}
               </p>
             </motion.div>
             <motion.div variants={fadeInUp} className="bg-pcfi-green-800 text-white rounded-2xl p-8 shadow-lg">
@@ -379,7 +404,7 @@ export default function AboutPage() {
               </h3>
               <p className="text-pcfi-green-100 leading-relaxed text-sm">
                 {blocks.vision?.content ||
-                  "To be Nepal's most trusted and innovative livestock feed manufacturer."}
+                  "To be recognized as Nepal’s most trusted provider of cattle feed solutions — setting new standards for quality, sustainability, and customer satisfaction across the agricultural sector."}
               </p>
             </motion.div>
           </div>
@@ -399,7 +424,7 @@ export default function AboutPage() {
               whileInView="visible"
               viewport={{ once: true, margin: "-50px" }}
               variants={staggerContainer}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 items-start"
             >
               {boardMembers.map((member) => (
                 <BoardMemberCard key={member.id} member={member} />
