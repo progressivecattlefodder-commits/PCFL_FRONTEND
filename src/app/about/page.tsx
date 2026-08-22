@@ -79,6 +79,7 @@ const FALLBACK_BOARD_MEMBERS: BoardMember[] = [
 const FALLBACK_EMPLOYEES: EmployeeUser[] = [
   {
     id: 2,
+    status: 'Mr.',
     full_name: 'Sunil Pandey',
     title: 'Production Manager',
     avatar_url: '/team/prodManager.jpg',
@@ -92,15 +93,17 @@ const FALLBACK_EMPLOYEES: EmployeeUser[] = [
   },
   {
     id: 7,
+    status: 'Mr.',
     full_name: 'Krishna Thapa',
     title: 'Technical Head',
     avatar_url: '/team/technicalHead.jpg',
   },
   {
     id: 3,
+    status: 'Mr.',
     full_name: 'Gokarna Budhathoki',
     title: 'Plant Assistant',
-    avatar_url: '/team/plantAssistant.jpg',
+    avatar_url: '/team/.jpg',
   },
 ];
 
@@ -292,7 +295,7 @@ export default function AboutPage() {
       >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p className="section-subheading">Who We Are</p>
-          <h2 className="section-heading">{blocks.about_company?.title || 'About PCFI'}</h2>
+          <h2 className="section-heading">{blocks.about_company?.title || 'About PCFL'}</h2>
           <p className="text-gray-600 leading-relaxed text-lg">
             {isLoading
               ? 'Loading…'
