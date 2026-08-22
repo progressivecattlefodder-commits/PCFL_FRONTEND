@@ -1,0 +1,16 @@
+{
+  "name": "Progressive Cattle Fodder Industries Ltd.",
+  "short_name": "PCFL",
+  "description": "Nepal's trusted manufacturer of high-quality bale silage and mash cattle feed.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2d6b25",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
