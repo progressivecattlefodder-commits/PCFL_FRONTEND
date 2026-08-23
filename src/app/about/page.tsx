@@ -82,28 +82,28 @@ const FALLBACK_EMPLOYEES: EmployeeUser[] = [
     status: 'Mr.',
     full_name: 'Sunil Pandey',
     title: 'Production Manager',
-    avatar_url: '/team/emp_1.jpg',
+    avatar_url: '/images/Personalities/emp_1.webp',
   },
   {
     id: 6,
     status: 'Mrs.',
     full_name: 'Subhadra Pandey Thapa',
     title: 'Company Secretary',
-    avatar_url: '/team/emp_2.jpg',
+    avatar_url: '/images/Personalities/emp_2.webp',
   },
   {
     id: 7,
     status: 'Mr.',
     full_name: 'Krishna Thapa',
     title: 'Technical Head',
-    avatar_url: '/team/emp_3.jpg',
+    avatar_url: '/images/Personalities/emp_3.webp',
   },
   {
     id: 3,
     status: 'Mr.',
     full_name: 'Gokarna Budhathoki',
     title: 'Plant Assistant',
-    avatar_url: '/team/emp_4.jpg',
+    avatar_url: '/images/Personalities/emp_4.webp',
   },
 ];
 
