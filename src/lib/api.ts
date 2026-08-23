@@ -157,12 +157,12 @@ class ApiClient {
     return res.data;
   }
 
-  async updateBoardMember(id: string, data: Record<string, unknown>) {
+  async updateBoardMember(id: string | number, data: Record<string, unknown>) {
     const res = await this.client.put(`/api/admin/board_members/${id}`, data);
     return res.data;
   }
 
-  async deleteBoardMember(id: string) {
+  async deleteBoardMember(id: string | number) {
     const res = await this.client.delete(`/api/admin/board_members/${id}`);
     return res.data;
   }
@@ -178,12 +178,12 @@ class ApiClient {
     return res.data;
   }
 
-  async updateProduct(id: string, data: Record<string, unknown>) {
+  async updateProduct(id: string | number, data: Record<string, unknown>) {
     const res = await this.client.put(`/api/admin/products/${id}`, data);
     return res.data;
   }
 
-  async deleteProduct(id: string) {
+  async deleteProduct(id: string | number) {
     const res = await this.client.delete(`/api/admin/products/${id}`);
     return res.data;
   }
@@ -199,12 +199,12 @@ class ApiClient {
     return res.data;
   }
 
-  async updateGalleryItem(id: string, data: Partial<GalleryItem>): Promise<ApiResponse<GalleryItem>> {
+  async updateGalleryItem(id: string | number, data: Partial<GalleryItem>): Promise<ApiResponse<GalleryItem>> {
     const res = await this.client.put(`/api/admin/gallery/${id}`, data);
     return res.data;
   }
 
-  async deleteGalleryItem(id: string): Promise<ApiResponse<null>> {
+  async deleteGalleryItem(id: string | number): Promise<ApiResponse<null>> {
     const res = await this.client.delete(`/api/admin/gallery/${id}`);
     return res.data;
   }
@@ -234,7 +234,7 @@ class ApiClient {
     return res.data;
   }
 
-  async updateEmployee(id: string, data: FormData | Record<string, unknown>) {
+  async updateEmployee(id: string | number, data: FormData | Record<string, unknown>) {
     const isFormData = data instanceof FormData;
     const res = await this.client.put(`/api/admin/employees/${id}`, data, {
       headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : {},
@@ -242,17 +242,17 @@ class ApiClient {
     return res.data;
   }
 
-  async deleteEmployee(id: string) {
+  async deleteEmployee(id: string | number) {
     const res = await this.client.delete(`/api/admin/employees/${id}`);
     return res.data;
   }
 
-  async updateEmployeeRole(id: string, data: Record<string, unknown>) {
+  async updateEmployeeRole(id: string | number, data: Record<string, unknown>) {
     const res = await this.client.patch(`/api/admin/employees/${id}/role`, data);
     return res.data;
   }
 
-  async resetEmployeePassword(id: string, newPassword: string) {
+  async resetEmployeePassword(id: string | number, newPassword: string) {
     const res = await this.client.post(`/api/admin/employees/${id}/reset-password`, {
       new_password: newPassword,
     });

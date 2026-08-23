@@ -15,12 +15,12 @@ interface BoardMember {
   is_published?: boolean;
 }
 
-// Helper to resolve absolute image paths
+// Helper to resolve absolute image paths dynamically
 const resolveImageUrl = (url?: string) => {
   if (!url) return '';
   if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
   if (url.startsWith('/images/')) return url;
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || '';
   return `${baseUrl.replace(/\/$/, '')}/${url.replace(/^\//, '')}`;
 };
 
@@ -56,6 +56,7 @@ export default function AdminBoardMembersPage() {
   const [members, setMembers] = useState<BoardMember[]>([]);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<BoardMember | null>(null);
 
@@ -73,7 +74,7 @@ export default function AdminBoardMembersPage() {
   const fetchMembers = async () => {
     setIsLoading(true);
     try {
-      const res = await api.getBoardMembers();
+      const res = await api.getAdminBoardMembers();
       const data = Array.isArray(res) ? res : res?.data || [];
       setMembers(data);
     } catch (err) {
@@ -112,6 +113,25 @@ export default function AdminBoardMembersPage() {
       });
     }
     setIsModalOpen(true);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const res = await api.uploadImage(file);
+      const uploadedUrl = res?.url || res?.data?.url;
+      if (uploadedUrl) {
+        setFormData((prev) => ({ ...prev, image_url: uploadedUrl }));
+      }
+    } catch (err) {
+      console.error('Failed to upload image:', err);
+      alert('Failed to upload image');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -322,14 +342,27 @@ export default function AdminBoardMembersPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Image URL / Path</label>
-                <input
-                  type="text"
-                  value={formData.image_url}
-                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                  placeholder="/images/Personalities/Per_1.jpeg or relative upload path"
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-pcfi-green-600"
-                />
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Board Member Photo</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={formData.image_url}
+                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                    placeholder="/images/Personalities/Per_1.jpeg or relative upload path"
+                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-pcfi-green-600"
+                  />
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl text-xs transition-colors shrink-0">
+                    <Upload className="w-4 h-4" />
+                    {isUploading ? 'Uploading...' : 'Upload'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      disabled={isUploading}
+                    />
+                  </label>
+                </div>
               </div>
 
               {/* Avatar Live Preview */}
@@ -373,7 +406,8 @@ export default function AdminBoardMembersPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-sm font-medium bg-pcfi-green-700 hover:bg-pcfi-green-800 text-white rounded-xl transition-colors shadow-sm"
+                  disabled={isUploading}
+                  className="px-5 py-2 text-sm font-medium bg-pcfi-green-700 hover:bg-pcfi-green-800 disabled:opacity-50 text-white rounded-xl transition-colors shadow-sm"
                 >
                   Save Member
                 </button>

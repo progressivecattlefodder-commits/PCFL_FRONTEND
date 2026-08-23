@@ -27,11 +27,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
     const token = Cookies.get('auth_token');
+
     if (token) {
       api
         .getMe()
         .then((res) => {
+          if (!isMounted) return;
           if (res.success && res.data) {
             setUser(res.data);
           } else {
@@ -40,19 +43,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         })
         .catch(() => {
+          if (!isMounted) return;
           Cookies.remove('auth_token');
           setUser(null);
         })
-        .finally(() => setIsLoading(false));
+        .finally(() => {
+          if (isMounted) setIsLoading(false);
+        });
     } else {
       setIsLoading(false);
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
     const res = await api.login(email, password);
     if (res.success && res.data) {
-      // Secure cookies in production environments
       Cookies.set('auth_token', res.data.token, {
         expires: 1,
         sameSite: 'strict',
