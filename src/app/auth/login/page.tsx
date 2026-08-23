@@ -56,8 +56,8 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-pcfi-gold-500 rounded-2xl mb-4 shadow-xl">
             <Leaf className="w-8 h-8 text-white" />
           </div>
-          <h1 className="font-display text-2xl font-bold text-white">PDAS Admin</h1>
-          <p className="text-pcfi-green-200 text-sm mt-1">Progressive Dairy and Agro Solutions Pvt. Ltd.</p>
+          <h1 className="font-display text-2xl font-bold text-white">PCFL Admin</h1>
+          <p className="text-pcfi-green-200 text-sm mt-1">Progressive Cattle Fodder Industries Ltd.</p>
         </div>
 
         {/* Card */}
@@ -124,7 +124,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center mt-6 text-pcfi-green-300 text-xs">
-          © {new Date().getFullYear()} PCFI. All rights reserved.
+          © {new Date().getFullYear()} PCFL. All rights reserved.
         </p>
       </div>
     </div>

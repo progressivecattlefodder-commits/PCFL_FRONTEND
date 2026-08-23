@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Phone, ArrowRight, Leaf, Award, Users, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Phone, ArrowRight, Leaf, Award, Users, CheckCircle } from 'lucide-react';
 import PublicLayout from '@/components/layout/PublicLayout';
 import { api } from '@/lib/api';
 import { HeroSection, Product, ContentBlock } from '@/types';
-import { IMAGE } from '@/lib/assets';
+import IMAGE from '@/lib/assets';
 
 const fallbackHero: HeroSection = {
   id: '',
@@ -24,53 +24,56 @@ const fallbackHero: HeroSection = {
   updated_at: '',
 };
 
+// Helper for image fallbacks (same logic as Products page)
+const getProductImage = (product: Product, index: number) => {
+  if (product.image_url) return product.image_url;
+
+  const identifier = `${product.slug || ''} ${product.name || ''}`.toLowerCase();
+
+  if (identifier.includes('silage') || identifier.includes('bale')) {
+    return IMAGE.product[1];
+  }
+  if (identifier.includes('mash') || identifier.includes('cow') || identifier.includes('feed')) {
+    return IMAGE.product[2];
+  }
+
+  const imageKey = (index % 2) + 1;
+  return IMAGE.product[imageKey as 1 | 2] || IMAGE.product[1];
+};
+
 export default function HomePage() {
   const [hero, setHero] = useState<HeroSection>(fallbackHero);
   const [products, setProducts] = useState<Product[]>([]);
   const [aboutContent, setAboutContent] = useState<ContentBlock[]>([]);
   const [chairmanMsg, setChairmanMsg] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-
-  // Slideshow state
-  const [currentProductIndex, setCurrentProductIndex] = useState(0);
+  const [activeCategory, setActiveCategory] = useState('All');
 
   useEffect(() => {
     Promise.all([
       api.getHero().catch(() => ({ success: false })),
       api.getPublicProducts().catch(() => ({ success: false, data: [] })),
       api.getAbout().catch(() => ({ success: false, data: [] })),
-    ]).then(([heroRes, productsRes, aboutRes]) => {
-      if (heroRes.success && heroRes.data) setHero(heroRes.data);
-      if (productsRes.success) setProducts(productsRes.data);
-      if (aboutRes.success) {
-        setAboutContent(aboutRes.data);
-        const chairman = aboutRes.data.find((b: ContentBlock) => b.key === 'chairman_message');
-        if (chairman) setChairmanMsg(chairman.content);
-      }
-    }).finally(() => setIsLoading(false));
+    ])
+      .then(([heroRes, productsRes, aboutRes]) => {
+        if (heroRes.success && heroRes.data) setHero(heroRes.data);
+        if (productsRes.success) setProducts(productsRes.data);
+        if (aboutRes.success) {
+          setAboutContent(aboutRes.data);
+          const chairman = aboutRes.data.find((b: ContentBlock) => b.key === 'chairman_message');
+          if (chairman) setChairmanMsg(chairman.content);
+        }
+      })
+      .finally(() => setIsLoading(false));
   }, []);
 
-  // Slideshow Interval (6-second hold time)
-  useEffect(() => {
-    if (products.length <= 1) return;
+  const categories = ['All', ...Array.from(new Set(products.map((p) => p.category)))];
+  const filteredProducts =
+    activeCategory === 'All'
+      ? products
+      : products.filter((p) => p.category === activeCategory);
 
-    const interval = setInterval(() => {
-      setCurrentProductIndex((prev) => (prev + 1) % products.length);
-    }, 6000);
-
-    return () => clearInterval(interval);
-  }, [products.length]);
-
-  const activeProduct = products[currentProductIndex];
   const heroBgImage = hero.background_image_url || IMAGE.background;
-
-  const handleNextProduct = () => {
-    setCurrentProductIndex((prev) => (prev + 1) % products.length);
-  };
-
-  const handlePrevProduct = () => {
-    setCurrentProductIndex((prev) => (prev - 1 + products.length) % products.length);
-  };
 
   return (
     <PublicLayout>
@@ -79,7 +82,7 @@ export default function HomePage() {
         <div className="absolute inset-0">
           <Image
             src={heroBgImage}
-            alt={hero.heading || "Cattle farm"}
+            alt={hero.heading || 'Cattle farm'}
             fill
             className="object-cover opacity-100"
             priority
@@ -113,7 +116,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Floating stats */}
+        {/* Floating Stats */}
         <div className="absolute bottom-8 right-8 hidden lg:flex gap-4">
           {[
             { val: '6+', label: 'Years Experience' },
@@ -128,97 +131,118 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Dynamic Product Slideshow Section */}
-      <section className="py-16 bg-white overflow-hidden">
+      {/* Dynamic Products Showcase Section */}
+      <section className="py-16 bg-gray-50 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center md:text-left mb-4">
-            <p className="section-subheading">Our Featured Products</p>
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+            <div>
+              <p className="section-subheading">Our Premium Feed Solutions</p>
+              <h2 className="section-heading text-3xl md:text-4xl">Featured Products</h2>
+            </div>
+            <Link
+              href="/products"
+              className="inline-flex items-center gap-2 text-pcfi-green-700 font-semibold hover:text-pcfi-green-900 transition-colors"
+            >
+              View Full Catalog <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
 
-          {activeProduct ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center min-h-[380px]">
-              {/* Product Details (Animated cross-fade key) */}
-              <div key={`info-${activeProduct.id || currentProductIndex}`} className="transition-all duration-700 ease-in-out">
-                <h2 className="section-heading text-3xl font-bold text-gray-900 mb-4">
-                  {activeProduct.name}
-                </h2>
-                <p className="text-gray-600 leading-relaxed mb-6">
-                  {activeProduct.short_description ||
-                    'High-quality, balanced nutrition formulated specifically to enhance livestock health and overall yield.'}
-                </p>
-                <div className="flex items-center gap-4">
-                  <Link href={`/products/${activeProduct.slug || ''}`} className="btn-primary">
-                    Learn More
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
-                  <Link href="/products" className="text-sm font-semibold text-pcfi-green-700 hover:text-pcfi-green-900 transition-colors">
-                    View All Products
-                  </Link>
-                </div>
-              </div>
-
-              {/* Product Visual Container */}
-              <div className="relative">
-                <div key={`img-${activeProduct.id || currentProductIndex}`} className="relative h-80 rounded-2xl overflow-hidden shadow-2xl transition-all duration-700 ease-in-out">
-                  <Image
-                    src={
-                      activeProduct.image_url ||
-                      'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=800'
-                    }
-                    alt={activeProduct.name}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-
-                {/* Manual Navigation Arrows */}
-                {products.length > 1 && (
-                  <div className="absolute top-1/2 -translate-y-1/2 inset-x-0 flex justify-between px-4 pointer-events-none">
-                    <button
-                      onClick={handlePrevProduct}
-                      className="pointer-events-auto w-10 h-10 rounded-full bg-white/80 backdrop-blur-md shadow-lg flex items-center justify-center text-gray-800 hover:bg-white transition-all"
-                      aria-label="Previous Product"
-                    >
-                      <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={handleNextProduct}
-                      className="pointer-events-auto w-10 h-10 rounded-full bg-white/80 backdrop-blur-md shadow-lg flex items-center justify-center text-gray-800 hover:bg-white transition-all"
-                      aria-label="Next Product"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="h-64 flex items-center justify-center text-gray-400">
-              Loading products...
+          {/* Category Pill Filters */}
+          {categories.length > 1 && (
+            <div className="flex gap-2 mb-10 overflow-x-auto pb-2">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                    activeCategory === cat
+                      ? 'bg-pcfi-green-700 text-white shadow-md'
+                      : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
             </div>
           )}
 
-          {/* Pagination Indicators / Slide Dots */}
-          {products.length > 1 && (
-            <div className="flex justify-center items-center gap-2 mt-8">
-              {products.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentProductIndex(idx)}
-                  className={`h-2.5 rounded-full transition-all duration-300 ${
-                    idx === currentProductIndex
-                      ? 'w-8 bg-pcfi-green-700'
-                      : 'w-2.5 bg-gray-300 hover:bg-gray-400'
-                  }`}
-                  aria-label={`Go to slide ${idx + 1}`}
-                />
+          {/* Products Showcase Grid */}
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-2xl overflow-hidden animate-pulse border border-gray-100">
+                  <div className="h-56 bg-gray-200" />
+                  <div className="p-6">
+                    <div className="h-4 bg-gray-200 rounded mb-3" />
+                    <div className="h-3 bg-gray-200 rounded mb-2" />
+                    <div className="h-3 bg-gray-200 rounded w-2/3" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="text-center py-16 text-gray-500 bg-white rounded-2xl border border-gray-100">
+              No products found in this category.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {filteredProducts.map((product, idx) => (
+                <div
+                  key={product.id || idx}
+                  className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col"
+                >
+                  <div className="relative h-56 w-full bg-gray-100">
+                    <Image
+                      src={getProductImage(product, idx)}
+                      alt={product.name}
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      className="object-cover"
+                    />
+                    <div className="absolute top-4 left-4">
+                      <span className="bg-pcfi-green-700/90 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1 rounded-full shadow">
+                        {product.category}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-6 flex-1 flex flex-col justify-between">
+                    <div>
+                      <h3 className="font-display text-xl font-bold text-gray-900 mb-2">
+                        {product.name}
+                      </h3>
+                      <p className="text-gray-600 text-sm leading-relaxed mb-4 line-clamp-3">
+                        {product.short_description || product.description}
+                      </p>
+
+                      {product.features && product.features.length > 0 && (
+                        <ul className="space-y-1.5 mb-6">
+                          {product.features.slice(0, 2).map((feat, i) => (
+                            <li key={i} className="flex items-center gap-2 text-xs text-gray-700">
+                              <CheckCircle className="w-3.5 h-3.5 text-pcfi-green-600 shrink-0" />
+                              <span className="truncate">{feat}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+
+                    <Link
+                      href={`/products/${product.slug}`}
+                      className="btn-primary w-full text-center justify-center mt-2 text-sm"
+                    >
+                      View Details
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </div>
+                </div>
               ))}
             </div>
           )}
         </div>
       </section>
 
-      {/* Chairman message */}
+      {/* Chairman Message */}
       <section className="py-16 bg-pcfi-green-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -266,7 +290,8 @@ export default function HomePage() {
               </div>
               <h3 className="font-display text-xl font-bold text-pcfi-gold-300 mb-3">Our Mission</h3>
               <p className="text-pcfi-green-100 leading-relaxed text-sm">
-                To provide farmers with innovative, reliable, and sustainable silage solutions that enhance livestock health, increase productivity, and secure a brighter agricultural future.              </p>
+                To provide farmers with innovative, reliable, and sustainable silage solutions that enhance livestock health, increase productivity, and secure a brighter agricultural future.
+              </p>
             </div>
             <div className="bg-pcfi-green-700/50 border border-pcfi-green-600 rounded-2xl p-8">
               <div className="w-12 h-12 bg-pcfi-gold-500 rounded-xl flex items-center justify-center mb-4">
@@ -274,7 +299,8 @@ export default function HomePage() {
               </div>
               <h3 className="font-display text-xl font-bold text-pcfi-gold-300 mb-3">Our Vision</h3>
               <p className="text-pcfi-green-100 leading-relaxed text-sm">
-               To be recognized as Nepal’s most trusted provider of cattle feed solutions — setting new standards for quality, sustainability, and customer satisfaction across the agricultural sector.              </p>
+                To be recognized as Nepal’s most trusted provider of cattle feed solutions — setting new standards for quality, sustainability, and customer satisfaction across the agricultural sector.
+              </p>
             </div>
           </div>
         </div>
@@ -291,7 +317,7 @@ export default function HomePage() {
           </p>
           <Link href="/products" className="inline-flex items-center gap-2 bg-white text-pcfi-gold-600 font-bold px-8 py-3 rounded-lg hover:bg-pcfi-green-50 transition-colors">
             View Our Products
-            <ChevronRight className="w-4 h-4" />
+            <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </section>
