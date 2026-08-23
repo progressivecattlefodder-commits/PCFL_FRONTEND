@@ -1,7 +1,8 @@
 import { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://localhost:3000/';
+  // Remove trailing slash from default and environment fallback
+  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://progressivecattlefodderindustries.com').replace(/\/$/, '');
 
   return [
     { url: baseUrl, lastModified: new Date(), changeFrequency: 'weekly', priority: 1 },

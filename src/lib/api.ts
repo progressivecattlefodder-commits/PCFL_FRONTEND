@@ -2,7 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import Cookies from 'js-cookie';
 import { GalleryItem } from '@/types';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost8080';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://pcfl-backend.onrender.com';
 
 export interface ApiResponse<T> {
   success: boolean;
