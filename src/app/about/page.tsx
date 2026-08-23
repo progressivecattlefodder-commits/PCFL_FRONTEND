@@ -31,7 +31,7 @@ interface EmployeeUser {
   avatar_url?: string;
 }
 
-// Fallback Board Members Data from Legacy Website
+// Fallback Board Members Data
 const FALLBACK_BOARD_MEMBERS: BoardMember[] = [
   {
     id: 5,
@@ -75,7 +75,7 @@ const FALLBACK_BOARD_MEMBERS: BoardMember[] = [
   },
 ];
 
-// Fallback Employees Data from Legacy Website
+// Fallback Employees Data
 const FALLBACK_EMPLOYEES: EmployeeUser[] = [
   {
     id: 2,
@@ -107,6 +107,15 @@ const FALLBACK_EMPLOYEES: EmployeeUser[] = [
   },
 ];
 
+// Helper to resolve absolute image URLs
+const resolveImageUrl = (url?: string) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
+  if (url.startsWith('/images/')) return url; // Static asset paths
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+  return `${baseUrl.replace(/\/$/, '')}/${url.replace(/^\//, '')}`;
+};
+
 // Animation Configurations
 const fadeInUp = {
   hidden: { opacity: 0, y: 30 },
@@ -127,9 +136,16 @@ const staggerContainer = {
 };
 
 function BoardMemberCard({ member }: { member: BoardMember }) {
-  const [imgSrc, setImgSrc] = useState<string>(member.image_url || IMAGE.chairman);
+  const resolvedUrl = resolveImageUrl(member.image_url);
+  const [imgSrc, setImgSrc] = useState<string>(resolvedUrl);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setImgSrc(resolveImageUrl(member.image_url));
+    setHasError(false);
+  }, [member.image_url]);
 
   const statusPrefix = member.status ? `${member.status.trim()} ` : '';
   const showFullBio = isExpanded || isHovered;
@@ -143,19 +159,26 @@ function BoardMemberCard({ member }: { member: BoardMember }) {
       onMouseLeave={() => setIsHovered(false)}
       className="bg-white rounded-3xl shadow-sm border border-gray-100 p-7 hover:shadow-xl transition-all duration-300 flex flex-col items-center w-full group"
     >
-      {/* 1. Perfect Circular Avatar */}
-      <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gray-50 mb-5 shrink-0 border-2 border-pcfi-green-100 group-hover:border-pcfi-green-600 transition-colors shadow-sm">
-        <Image
-          src={imgSrc}
-          alt={member.full_name}
-          fill
-          sizes="128px"
-          className="object-cover object-top group-hover:scale-105 transition-transform duration-500 ease-out"
-          onError={() => setImgSrc(IMAGE.chairman)}
-        />
+      {/* Avatar Container */}
+      <div className="relative w-32 h-32 rounded-full overflow-hidden bg-pcfi-green-50 mb-5 shrink-0 border-2 border-pcfi-green-100 group-hover:border-pcfi-green-600 transition-colors shadow-sm flex items-center justify-center">
+        {imgSrc && !hasError ? (
+          <Image
+            src={imgSrc}
+            alt={member.full_name}
+            fill
+            sizes="128px"
+            className="object-cover object-top group-hover:scale-105 transition-transform duration-500 ease-out"
+            onError={() => setHasError(true)}
+            unoptimized
+          />
+        ) : (
+          <span className="text-3xl font-bold text-pcfi-green-700 font-display">
+            {member.full_name.charAt(0)}
+          </span>
+        )}
       </div>
 
-      {/* 2. Header Information (Centered) */}
+      {/* Header Information */}
       <div className="text-center mb-4">
         <h3 className="font-display text-xl font-bold text-pcfi-green-900 leading-snug">
           {statusPrefix && <span className="font-medium">{statusPrefix}</span>}
@@ -166,7 +189,7 @@ function BoardMemberCard({ member }: { member: BoardMember }) {
         </p>
       </div>
 
-      {/* 3. Bio Paragraph (Left-Aligned for Clean Readability) */}
+      {/* Bio Paragraph */}
       {member.bio && (
         <div className="w-full pt-4 border-t border-gray-100 text-left">
           <p 
@@ -196,8 +219,15 @@ function BoardMemberCard({ member }: { member: BoardMember }) {
 }
 
 function EmployeeCard({ employee }: { employee: EmployeeUser }) {
-  const [avatarSrc, setAvatarSrc] = useState<string>(employee.avatar_url || IMAGE.logo);
+  const resolvedUrl = resolveImageUrl(employee.avatar_url);
+  const [avatarSrc, setAvatarSrc] = useState<string>(resolvedUrl);
+  const [hasError, setHasError] = useState(false);
   const statusPrefix = employee.status ? `${employee.status.trim()} ` : '';
+
+  useEffect(() => {
+    setAvatarSrc(resolveImageUrl(employee.avatar_url));
+    setHasError(false);
+  }, [employee.avatar_url]);
 
   return (
     <motion.div 
@@ -206,15 +236,22 @@ function EmployeeCard({ employee }: { employee: EmployeeUser }) {
       transition={{ duration: 0.25, ease: 'easeOut' }}
       className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 flex items-center p-5 gap-4 group"
     >
-      <div className="relative w-20 h-20 rounded-full overflow-hidden bg-pcfi-green-100 shrink-0 border-2 border-pcfi-green-500 shadow-sm group-hover:border-pcfi-gold-500 transition-colors">
-        <Image
-          src={avatarSrc}
-          alt={employee.full_name || 'Team Member'}
-          fill
-          sizes="80px"
-          className="object-cover group-hover:scale-110 transition-transform duration-300"
-          onError={() => setAvatarSrc(IMAGE.logo)}
-        />
+      <div className="relative w-20 h-20 rounded-full overflow-hidden bg-pcfi-green-100 shrink-0 border-2 border-pcfi-green-500 shadow-sm group-hover:border-pcfi-gold-500 transition-colors flex items-center justify-center">
+        {avatarSrc && !hasError ? (
+          <Image
+            src={avatarSrc}
+            alt={employee.full_name || 'Team Member'}
+            fill
+            sizes="80px"
+            className="object-cover group-hover:scale-110 transition-transform duration-300"
+            onError={() => setHasError(true)}
+            unoptimized
+          />
+        ) : (
+          <span className="text-xl font-bold text-pcfi-green-800 font-display">
+            {employee.full_name?.charAt(0) || 'E'}
+          </span>
+        )}
       </div>
       <div className="overflow-hidden">
         <h4 className="font-display text-base font-bold text-gray-900 group-hover:text-pcfi-green-700 transition-colors truncate">

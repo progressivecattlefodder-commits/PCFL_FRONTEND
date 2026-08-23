@@ -13,7 +13,6 @@
 # Environment files & secrets (CRITICAL)
 .env
 .env*.local
-.env.local.example
 .env.development.local
 .env.test.local
 .env.production.local

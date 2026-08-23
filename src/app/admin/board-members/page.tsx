@@ -1,409 +1,387 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
-import Image from 'next/image';
-import { Plus, Pencil, Trash2, Search, Eye, EyeOff, Upload, X } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { useEffect, useState } from 'react';
+import { Plus, Search, Eye, EyeOff, Edit, Trash2, X, Upload } from 'lucide-react';
 import { api } from '@/lib/api';
-import Modal from '@/components/ui/Modal';
-import ConfirmDialog from '@/components/ui/ConfirmDialog';
-import Badge from '@/components/ui/Badge';
 
-// FIX 1: Added index signature `[key: string]: unknown;` to make BoardMember compatible with Record<string, unknown>
 interface BoardMember {
-  [key: string]: unknown;
-  id: string;
+  id: string | number;
   full_name: string;
   title: string;
+  status?: string;
   bio?: string;
   image_url?: string;
-  sort_order: number;
-  is_published: boolean;
-  created_at?: string;
-  updated_at?: string;
-  created_by?: string;
+  sort_order?: number;
+  is_published?: boolean;
 }
 
-const emptyForm: BoardMember = {
-  id: '',
-  full_name: '',
-  title: '',
-  bio: '',
-  image_url: '',
-  sort_order: 0,
-  is_published: false,
+// Helper to resolve absolute image paths
+const resolveImageUrl = (url?: string) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
+  if (url.startsWith('/images/')) return url;
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+  return `${baseUrl.replace(/\/$/, '')}/${url.replace(/^\//, '')}`;
 };
 
-export default function AdminBoardMembersPage() {
-  const [boardMembers, setBoardMembers] = useState<BoardMember[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [form, setForm] = useState<BoardMember>(emptyForm);
-  const [saving, setSaving] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const fetchBoardMembers = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await api.getAdminBoardMembers();
-      if (res.success) setBoardMembers(res.data);
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to load board members');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+function MemberAvatar({ url, name }: { url?: string; name: string }) {
+  const [hasError, setHasError] = useState(false);
+  const resolvedUrl = resolveImageUrl(url);
 
   useEffect(() => {
-    fetchBoardMembers();
-  }, [fetchBoardMembers]);
+    setHasError(false);
+  }, [url]);
 
-  const openCreate = () => {
-    setForm(emptyForm);
-    setEditingId(null);
-    setModalOpen(true);
-  };
+  if (!resolvedUrl || hasError) {
+    return (
+      <div className="w-10 h-10 rounded-full bg-pcfi-green-100 text-pcfi-green-800 font-bold flex items-center justify-center text-sm border border-pcfi-green-200 shrink-0">
+        {name ? name.charAt(0).toUpperCase() : 'B'}
+      </div>
+    );
+  }
 
-  const openEdit = (member: BoardMember) => {
-    setForm({
-      id: member.id,
-      full_name: member.full_name,
-      title: member.title,
-      bio: member.bio || '',
-      image_url: member.image_url || '',
-      sort_order: member.sort_order,
-      is_published: member.is_published,
-    });
-    setEditingId(member.id);
-    setModalOpen(true);
-  };
+  return (
+    <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
+      <img
+        src={resolvedUrl}
+        alt={name}
+        className="w-full h-full object-cover"
+        onError={() => setHasError(true)}
+      />
+    </div>
+  );
+}
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+export default function AdminBoardMembersPage() {
+  const [members, setMembers] = useState<BoardMember[]>([]);
+  const [search, setSearch] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingMember, setEditingMember] = useState<BoardMember | null>(null);
 
-    setUploadingImage(true);
+  // Form State
+  const [formData, setFormData] = useState({
+    status: 'Mr.',
+    full_name: '',
+    title: 'Director',
+    bio: '',
+    image_url: '',
+    sort_order: 1,
+    is_published: true,
+  });
+
+  const fetchMembers = async () => {
+    setIsLoading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const res = await api.uploadImage(formData);
-
-      if (res.success && (res.data?.url || res.url)) {
-        const imageUrl = res.data?.url || res.url;
-        setForm((f) => ({ ...f, image_url: imageUrl }));
-        toast.success('Image uploaded successfully');
-      } else {
-        // FIX 2: Safely access error property to satisfy TypeScript
-        const errorMsg = (res as { error?: string })?.error || 'Failed to upload image';
-        toast.error(errorMsg);
-      }
-    } catch (err: any) {
-      console.error('Upload error details:', err.response?.data || err.message);
-      const errorMsg = err.response?.data?.error || err.response?.data?.message || 'Failed to upload image';
-      toast.error(errorMsg);
+      const res = await api.getBoardMembers();
+      const data = Array.isArray(res) ? res : res?.data || [];
+      setMembers(data);
+    } catch (err) {
+      console.error('Failed to fetch board members:', err);
     } finally {
-      setUploadingImage(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      setIsLoading(false);
     }
   };
 
-  const handleSave = async () => {
-    if (!form.full_name.trim() || !form.title.trim()) {
-      toast.error('Name and title are required');
-      return;
+  useEffect(() => {
+    fetchMembers();
+  }, []);
+
+  const handleOpenModal = (member?: BoardMember) => {
+    if (member) {
+      setEditingMember(member);
+      setFormData({
+        status: member.status || 'Mr.',
+        full_name: member.full_name || '',
+        title: member.title || 'Director',
+        bio: member.bio || '',
+        image_url: member.image_url || '',
+        sort_order: member.sort_order || 1,
+        is_published: member.is_published ?? true,
+      });
+    } else {
+      setEditingMember(null);
+      setFormData({
+        status: 'Mr.',
+        full_name: '',
+        title: 'Director',
+        bio: '',
+        image_url: '',
+        sort_order: members.length + 1,
+        is_published: true,
+      });
     }
-    setSaving(true);
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      if (editingId) {
-        const res = await api.updateBoardMember(editingId, form);
-        if (res.success) {
-          toast.success('Board member updated');
-          setModalOpen(false);
-          fetchBoardMembers();
-        }
+      if (editingMember) {
+        await api.updateBoardMember(editingMember.id, formData);
       } else {
-        const res = await api.createBoardMember(form);
-        if (res.success) {
-          toast.success('Board member created');
-          setModalOpen(false);
-          fetchBoardMembers();
-        }
+        await api.createBoardMember(formData);
       }
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to save board member');
-    } finally {
-      setSaving(false);
+      setIsModalOpen(false);
+      fetchMembers();
+    } catch (err) {
+      console.error('Failed to save board member:', err);
+      alert('Error saving board member');
     }
   };
 
-  const handleDelete = async () => {
-    if (!deleteId) return;
+  const handleDelete = async (id: string | number) => {
+    if (!confirm('Are you sure you want to delete this board member?')) return;
     try {
-      await api.deleteBoardMember(deleteId);
-      toast.success('Board member deleted');
-      setDeleteId(null);
-      fetchBoardMembers();
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to delete board member');
+      await api.deleteBoardMember(id);
+      fetchMembers();
+    } catch (err) {
+      console.error('Failed to delete board member:', err);
     }
   };
 
   const handleTogglePublish = async (member: BoardMember) => {
     try {
-      const payload: BoardMember = {
-        ...member,
+      await api.updateBoardMember(member.id, {
         is_published: !member.is_published,
-      };
-      const res = await api.updateBoardMember(member.id, payload);
-      if (res.success) {
-        toast.success(member.is_published ? 'Unpublished' : 'Published');
-        fetchBoardMembers();
-      }
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to update status');
+      });
+      fetchMembers();
+    } catch (err) {
+      console.error('Failed to toggle publish state:', err);
     }
   };
 
-  const filtered = boardMembers.filter(
+  const filteredMembers = members.filter(
     (m) =>
-      m.full_name.toLowerCase().includes(search.toLowerCase()) ||
-      m.title.toLowerCase().includes(search.toLowerCase())
+      m.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+      m.title?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-8 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="font-display text-2xl font-bold text-gray-900">Board Members</h1>
-          <p className="text-gray-500 text-sm mt-0.5">{boardMembers.length} total members</p>
+          <p className="text-sm text-gray-500 mt-1">{members.length} total members</p>
         </div>
-        <button onClick={openCreate} className="btn-primary flex items-center gap-2">
+        <button
+          onClick={() => handleOpenModal()}
+          className="inline-flex items-center gap-2 bg-pcfi-green-700 hover:bg-pcfi-green-800 text-white font-medium px-4 py-2.5 rounded-xl transition-colors shadow-sm"
+        >
           <Plus className="w-4 h-4" /> Add Board Member
         </button>
       </div>
 
-      {/* Search */}
-      <div className="admin-card mb-5">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      {/* Search Input */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
+        <div className="relative max-w-md">
+          <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
+            placeholder="Search members by name or title..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search members by name or title…"
-            className="form-input pl-10"
+            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-pcfi-green-600"
           />
         </div>
       </div>
 
-      {/* Table */}
-      <div className="admin-card overflow-hidden p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                {['Member', 'Title', 'Status', 'Order', 'Actions'].map((h) => (
-                  <th key={h} className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {loading ? (
-                [...Array(4)].map((_, i) => (
-                  <tr key={i}>
-                    {[...Array(5)].map((_, j) => (
-                      <td key={j} className="px-5 py-4">
-                        <div className="h-4 bg-gray-100 rounded animate-pulse" />
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-5 py-12 text-center text-gray-400">
-                    No board members found.
-                  </td>
+      {/* Members Table */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        {isLoading ? (
+          <div className="p-8 text-center text-gray-400">Loading members...</div>
+        ) : filteredMembers.length === 0 ? (
+          <div className="p-8 text-center text-gray-400">No members found.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50/50 text-xs uppercase font-semibold text-gray-500 tracking-wider">
+                  <th className="px-6 py-4">Member</th>
+                  <th className="px-6 py-4">Title</th>
+                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4">Order</th>
+                  <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
-              ) : (
-                filtered.map((m) => (
-                  <tr key={m.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-5 py-4">
+              </thead>
+              <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
+                {filteredMembers.map((member) => (
+                  <tr key={member.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 shrink-0">
-                          {m.image_url ? (
-                            <Image src={m.image_url} alt={m.full_name} width={40} height={40} className="object-cover w-full h-full" />
-                          ) : (
-                            <div className="w-full h-full bg-pcfi-green-100 flex items-center justify-center text-pcfi-green-600 font-bold text-xs">
-                              {m.full_name.charAt(0)}
-                            </div>
-                          )}
-                        </div>
+                        <MemberAvatar url={member.image_url} name={member.full_name} />
                         <div>
-                          <p className="font-medium text-gray-900">{m.full_name}</p>
+                          <p className="font-semibold text-gray-900">
+                            {member.status ? `${member.status} ` : ''}{member.full_name}
+                          </p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-gray-600">{m.title}</td>
-                    <td className="px-5 py-4">
-                      <Badge variant={m.is_published ? 'green' : 'gray'}>
-                        {m.is_published ? 'Published' : 'Draft'}
-                      </Badge>
+                    <td className="px-6 py-4 font-medium text-gray-600">{member.title}</td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                          member.is_published ?? true
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-amber-100 text-amber-700'
+                        }`}
+                      >
+                        {member.is_published ?? true ? 'Published' : 'Hidden'}
+                      </span>
                     </td>
-                    <td className="px-5 py-4 text-gray-500">{m.sort_order}</td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2">
+                    <td className="px-6 py-4 font-mono text-xs">{member.sort_order || 1}</td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="inline-flex items-center gap-2">
                         <button
-                          onClick={() => handleTogglePublish(m)}
-                          title={m.is_published ? 'Unpublish' : 'Publish'}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                          onClick={() => handleTogglePublish(member)}
+                          className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors"
+                          title="Toggle Visibility"
                         >
-                          {m.is_published ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          {member.is_published ?? true ? (
+                            <Eye className="w-4 h-4" />
+                          ) : (
+                            <EyeOff className="w-4 h-4" />
+                          )}
                         </button>
                         <button
-                          onClick={() => openEdit(m)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-pcfi-green-600 hover:bg-pcfi-green-50 transition-colors"
+                          onClick={() => handleOpenModal(member)}
+                          className="p-1.5 text-gray-400 hover:text-pcfi-green-700 transition-colors"
+                          title="Edit Member"
                         >
-                          <Pencil className="w-4 h-4" />
+                          <Edit className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => setDeleteId(m.id)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          onClick={() => handleDelete(member.id)}
+                          className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
+                          title="Delete Member"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      {/* Modal */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? 'Edit Board Member' : 'Add Board Member'} size="xl">
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="form-label">Full Name *</label>
-              <input
-                className="form-input"
-                value={form.full_name}
-                onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
-                placeholder="e.g. Jane Doe"
-              />
+      {/* Modal Form */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-100">
+            <div className="flex items-center justify-between mb-6 pb-3 border-b border-gray-100">
+              <h3 className="font-display text-lg font-bold text-gray-900">
+                {editingMember ? 'Edit Board Member' : 'Add Board Member'}
+              </h3>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <div>
-              <label className="form-label">Title / Role *</label>
-              <input
-                className="form-input"
-                value={form.title}
-                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                placeholder="e.g. Chairperson"
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="form-label">Profile Image</label>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleImageUpload}
-                accept="image/*"
-                className="hidden"
-              />
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadingImage}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
-                >
-                  <Upload className="w-4 h-4" />
-                  {uploadingImage ? 'Uploading...' : 'Upload Image'}
-                </button>
-                {form.image_url && (
-                  <button
-                    type="button"
-                    onClick={() => setForm((f) => ({ ...f, image_url: '' }))}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Remove image"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
+            <form onSubmit={handleSave} className="space-y-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Prefix</label>
+                  <input
+                    type="text"
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    placeholder="Mr. / Dr."
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-pcfi-green-600"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.full_name}
+                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                    placeholder="e.g. Gopal Thapa"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-pcfi-green-600"
+                  />
+                </div>
               </div>
-              {form.image_url && (
-                <div className="mt-2 relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200">
-                  <Image src={form.image_url} alt="Preview" fill className="object-cover" />
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Title / Designation</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="e.g. Chairman / Director"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-pcfi-green-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Image URL / Path</label>
+                <input
+                  type="text"
+                  value={formData.image_url}
+                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                  placeholder="/images/Personalities/Per_1.jpeg or relative upload path"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-pcfi-green-600"
+                />
+              </div>
+
+              {/* Avatar Live Preview */}
+              {formData.image_url && (
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                  <MemberAvatar url={formData.image_url} name={formData.full_name || 'Preview'} />
+                  <span className="text-xs text-gray-500 truncate">Image Preview</span>
                 </div>
               )}
-            </div>
-            <div>
-              <label className="form-label">Sort Order</label>
-              <input
-                type="number"
-                className="form-input"
-                value={form.sort_order}
-                onChange={(e) => setForm((f) => ({ ...f, sort_order: parseInt(e.target.value) || 0 }))}
-              />
-            </div>
-          </div>
 
-          <div>
-            <label className="form-label">Bio</label>
-            <textarea
-              className="form-input h-28 resize-none"
-              value={form.bio}
-              onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
-              placeholder="Short bio or background information…"
-            />
-          </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Biography</label>
+                <textarea
+                  rows={4}
+                  value={formData.bio}
+                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                  placeholder="Enter board member bio..."
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-pcfi-green-600"
+                />
+              </div>
 
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              id="is_published"
-              checked={form.is_published}
-              onChange={(e) => setForm((f) => ({ ...f, is_published: e.target.checked }))}
-              className="w-4 h-4 rounded text-pcfi-green-600 border-gray-300 focus:ring-pcfi-green-500"
-            />
-            <label htmlFor="is_published" className="text-sm font-medium text-gray-700">
-              Publish immediately
-            </label>
-          </div>
+              <div className="flex items-center justify-between pt-2">
+                <label className="flex items-center gap-2 text-sm text-gray-700 font-medium">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_published}
+                    onChange={(e) => setFormData({ ...formData, is_published: e.target.checked })}
+                    className="rounded border-gray-300 text-pcfi-green-700 focus:ring-pcfi-green-600"
+                  />
+                  Publish on Website
+                </label>
+              </div>
 
-          <div className="flex justify-end gap-3 pt-2">
-            <button onClick={() => setModalOpen(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
-              Cancel
-            </button>
-            <button onClick={handleSave} disabled={saving} className="btn-primary py-2 disabled:opacity-60">
-              {saving ? 'Saving…' : editingId ? 'Save Changes' : 'Create Member'}
-            </button>
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 text-sm font-medium bg-pcfi-green-700 hover:bg-pcfi-green-800 text-white rounded-xl transition-colors shadow-sm"
+                >
+                  Save Member
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-      </Modal>
-
-      <ConfirmDialog
-        open={!!deleteId}
-        title="Delete Board Member"
-        message="This will permanently remove the board member. This action cannot be undone."
-        confirmLabel="Delete"
-        danger
-        onConfirm={handleDelete}
-        onCancel={() => setDeleteId(null)}
-      />
+      )}
     </div>
   );
 }
