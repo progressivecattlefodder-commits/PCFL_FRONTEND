@@ -1,13 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Phone, ArrowRight, Leaf, Award, Users, CheckCircle } from 'lucide-react';
+import { Phone, ArrowRight, Leaf, Award, Users, CheckCircle, Maximize2, Minimize2 } from 'lucide-react';
 import PublicLayout from '@/components/layout/PublicLayout';
 import { api } from '@/lib/api';
 import { HeroSection, Product, ContentBlock } from '@/types';
 import IMAGE from '@/lib/assets';
+
+declare global {
+  interface Window {
+    onYouTubeIframeAPIReady?: () => void;
+    YT: any;
+  }
+}
 
 const fallbackHero: HeroSection = {
   id: '',
@@ -24,7 +31,14 @@ const fallbackHero: HeroSection = {
   updated_at: '',
 };
 
-// Helper for image fallbacks (same logic as Products page)
+const VIDEO_URL = 'https://youtu.be/22X1PbQf9J4';
+
+function getYouTubeId(url: string) {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return match && match[2].length === 11 ? match[2] : '22X1PbQf9J4';
+}
+
 const getProductImage = (product: Product, index: number) => {
   if (product.image_url) return product.image_url;
 
@@ -40,6 +54,87 @@ const getProductImage = (product: Product, index: number) => {
   const imageKey = (index % 2) + 1;
   return IMAGE.product[imageKey as 1 | 2] || IMAGE.product[1];
 };
+
+function CustomHeroVideoPlayer({ videoUrl }: { videoUrl: string }) {
+  const videoId = getYouTubeId(videoUrl);
+  const playerRef = useRef<any>(null);
+
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isApiReady, setIsApiReady] = useState(false);
+
+  useEffect(() => {
+    if (window.YT && window.YT.Player) {
+      setIsApiReady(true);
+      return;
+    }
+
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+
+    window.onYouTubeIframeAPIReady = () => {
+      setIsApiReady(true);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isApiReady) return;
+
+    playerRef.current = new window.YT.Player(`yt-player-${videoId}`, {
+      videoId: videoId,
+      playerVars: {
+        autoplay: 0,
+        controls: 1, // Standard YouTube controls enabled
+        modestbranding: 1,
+        rel: 0,
+        showinfo: 0,
+        playsinline: 1,
+      },
+    });
+
+    return () => {
+      if (playerRef.current && playerRef.current.destroy) {
+        playerRef.current.destroy();
+      }
+    };
+  }, [isApiReady, videoId]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsExpanded(true);
+    }, 8000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const toggleExpand = () => {
+    setIsExpanded((prev) => !prev);
+  };
+
+  return (
+    <div
+      className={`relative w-full transition-all duration-700 ease-out rounded-2xl overflow-hidden shadow-xl border border-gray-300 dark:border-gray-700/60 bg-black aspect-video group ${
+        isExpanded ? 'max-w-3xl mx-auto' : 'max-w-xl mx-auto'
+      }`}
+    >
+      <div id={`yt-player-${videoId}`} className="w-full h-full" />
+
+      {/* Frame Resize Toggle Button */}
+      <button
+        onClick={toggleExpand}
+        className="absolute top-3 right-3 z-10 p-2 bg-black/60 hover:bg-black/80 border border-white/20 rounded-lg text-white transition-opacity duration-300 opacity-0 group-hover:opacity-100"
+        title={isExpanded ? 'Minimize View' : 'Expand View'}
+      >
+        {isExpanded ? (
+          <Minimize2 className="w-4 h-4 text-white" />
+        ) : (
+          <Maximize2 className="w-4 h-4 text-white" />
+        )}
+      </button>
+    </div>
+  );
+}
 
 export default function HomePage() {
   const [hero, setHero] = useState<HeroSection>(fallbackHero);
@@ -78,7 +173,7 @@ export default function HomePage() {
   return (
     <PublicLayout>
       {/* Hero Section */}
-      <section className="relative min-h-[90vh] flex items-center bg-pcfi-green-900 overflow-hidden">
+      <section className="relative min-h-[90vh] flex items-center bg-pcfi-green-900 overflow-hidden py-16 lg:py-24">
         <div className="absolute inset-0">
           <Image
             src={heroBgImage}
@@ -91,47 +186,57 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-hero-gradient" />
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 bg-pcfi-gold-500/20 border border-pcfi-gold-400/40 rounded-full px-4 py-1.5 mb-6">
-              <Leaf className="w-3.5 h-3.5 text-pcfi-gold-400" />
-              <span className="text-pcfi-gold-300 text-xs font-medium">Healthy Cow, Happy Farmer!</span>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center">
+            
+            {/* Left Column Text */}
+            <div className="lg:col-span-6">
+              <div className="inline-flex items-center gap-2 bg-pcfi-gold-500/20 border border-pcfi-gold-400/40 rounded-full px-4 py-1.5 mb-6">
+                <Leaf className="w-3.5 h-3.5 text-pcfi-gold-400" />
+                <span className="text-pcfi-gold-300 text-xs font-medium">Healthy Cow, Happy Farmer!</span>
+              </div>
+              <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
+                {hero.heading}
+              </h1>
+              <p className="text-pcfi-green-100 text-lg md:text-xl mb-8 leading-relaxed max-w-2xl">
+                {hero.description}
+              </p>
+              <div className="flex flex-wrap gap-4">
+                <Link href={hero.primary_cta_link} className="btn-primary">
+                  <Phone className="w-4 h-4" />
+                  {hero.primary_cta_text}
+                </Link>
+                <Link href={hero.secondary_cta_link} className="btn-secondary">
+                  {hero.secondary_cta_text}
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
             </div>
-            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-              {hero.heading}
-            </h1>
-            <p className="text-pcfi-green-100 text-lg md:text-xl mb-8 leading-relaxed">
-              {hero.description}
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Link href={hero.primary_cta_link} className="btn-primary">
-                <Phone className="w-4 h-4" />
-                {hero.primary_cta_text}
-              </Link>
-              <Link href={hero.secondary_cta_link} className="btn-secondary">
-                {hero.secondary_cta_text}
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+
+            {/* Right Column Video Player */}
+            <div className="lg:col-span-6 w-full flex flex-col justify-center">
+              <CustomHeroVideoPlayer videoUrl={VIDEO_URL} />
             </div>
+
           </div>
         </div>
 
-        {/* Floating Stats */}
-        <div className="absolute bottom-8 right-8 hidden lg:flex gap-4">
+        {/* Floating Stats Bar */}
+        <div className="absolute bottom-6 right-8 hidden xl:flex gap-4 z-10">
           {[
             { val: '6+', label: 'Years Experience' },
             { val: '100%', label: 'Natural Feed' },
             { val: '500+', label: 'Happy Farmers' },
           ].map((stat) => (
-            <div key={stat.label} className="bg-white/10 backdrop-blur-md rounded-xl px-5 py-4 text-center border border-white/20">
-              <p className="text-pcfi-gold-300 text-2xl font-bold font-display">{stat.val}</p>
-              <p className="text-white text-xs mt-0.5">{stat.label}</p>
+            <div key={stat.label} className="bg-white/10 backdrop-blur-md rounded-xl px-5 py-3 text-center border border-white/20">
+              <p className="text-pcfi-gold-300 text-xl font-bold font-display">{stat.val}</p>
+              <p className="text-white text-[10px] mt-0.5">{stat.label}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Dynamic Products Showcase Section */}
+      {/* Featured Products Section */}
       <section className="py-16 bg-gray-50 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
@@ -147,7 +252,7 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {/* Category Pill Filters */}
+          {/* Category Filters */}
           {categories.length > 1 && (
             <div className="flex gap-2 mb-10 overflow-x-auto pb-2">
               {categories.map((cat) => (
@@ -166,7 +271,7 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Products Showcase Grid */}
+          {/* Products Grid */}
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {[1, 2, 3].map((i) => (
@@ -306,7 +411,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA */}
+      {/* Bottom CTA */}
       <section className="py-12 bg-pcfi-gold-500">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <h2 className="font-display text-2xl md:text-3xl font-bold text-white mb-4">

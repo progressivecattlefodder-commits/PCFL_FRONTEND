@@ -74,7 +74,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Leaf className="w-5 h-5 text-white" />
           </div>
           <div className="leading-tight">
-            <p className="text-sm font-bold">PCFI Admin</p>
+            <p className="text-sm font-bold">PCFL Admin</p>
             <p className="text-pcfi-green-300 text-xs">Control Panel</p>
           </div>
         </div>
