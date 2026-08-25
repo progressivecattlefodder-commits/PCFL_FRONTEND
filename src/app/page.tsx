@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Phone, ArrowRight, Leaf, Award, Users, CheckCircle, Maximize2, Minimize2 } from 'lucide-react';
+import { Phone, ArrowRight, Leaf, Award, Users, CheckCircle } from 'lucide-react';
 import PublicLayout from '@/components/layout/PublicLayout';
 import { api } from '@/lib/api';
 import { HeroSection, Product, ContentBlock } from '@/types';
@@ -55,11 +55,9 @@ const getProductImage = (product: Product, index: number) => {
   return IMAGE.product[imageKey as 1 | 2] || IMAGE.product[1];
 };
 
-function CustomHeroVideoPlayer({ videoUrl }: { videoUrl: string }) {
+function HeroBackgroundVideo({ videoUrl }: { videoUrl: string }) {
   const videoId = getYouTubeId(videoUrl);
   const playerRef = useRef<any>(null);
-
-  const [isExpanded, setIsExpanded] = useState(false);
   const [isApiReady, setIsApiReady] = useState(false);
 
   useEffect(() => {
@@ -81,15 +79,23 @@ function CustomHeroVideoPlayer({ videoUrl }: { videoUrl: string }) {
   useEffect(() => {
     if (!isApiReady) return;
 
-    playerRef.current = new window.YT.Player(`yt-player-${videoId}`, {
+    playerRef.current = new window.YT.Player(`yt-bg-player-${videoId}`, {
       videoId: videoId,
       playerVars: {
-        autoplay: 0,
-        controls: 1, // Standard YouTube controls enabled
+        autoplay: 1,
+        mute: 1,
+        controls: 1,
         modestbranding: 1,
         rel: 0,
         showinfo: 0,
         playsinline: 1,
+        loop: 1,
+        playlist: videoId,
+      },
+      events: {
+        onReady: (event: any) => {
+          event.target.playVideo();
+        },
       },
     });
 
@@ -100,38 +106,9 @@ function CustomHeroVideoPlayer({ videoUrl }: { videoUrl: string }) {
     };
   }, [isApiReady, videoId]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsExpanded(true);
-    }, 8000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  const toggleExpand = () => {
-    setIsExpanded((prev) => !prev);
-  };
-
   return (
-    <div
-      className={`relative w-full transition-all duration-700 ease-out rounded-2xl overflow-hidden shadow-xl border border-gray-300 dark:border-gray-700/60 bg-black aspect-video group ${
-        isExpanded ? 'max-w-3xl mx-auto' : 'max-w-xl mx-auto'
-      }`}
-    >
-      <div id={`yt-player-${videoId}`} className="w-full h-full" />
-
-      {/* Frame Resize Toggle Button */}
-      <button
-        onClick={toggleExpand}
-        className="absolute top-3 right-3 z-10 p-2 bg-black/60 hover:bg-black/80 border border-white/20 rounded-lg text-white transition-opacity duration-300 opacity-0 group-hover:opacity-100"
-        title={isExpanded ? 'Minimize View' : 'Expand View'}
-      >
-        {isExpanded ? (
-          <Minimize2 className="w-4 h-4 text-white" />
-        ) : (
-          <Maximize2 className="w-4 h-4 text-white" />
-        )}
-      </button>
+    <div className="absolute inset-0 w-full h-full overflow-hidden">
+      <div id={`yt-bg-player-${videoId}`} className="w-full h-full object-cover scale-125" />
     </div>
   );
 }
@@ -168,67 +145,46 @@ export default function HomePage() {
       ? products
       : products.filter((p) => p.category === activeCategory);
 
-  const heroBgImage = hero.background_image_url || IMAGE.background;
-
   return (
     <PublicLayout>
-      {/* Hero Section */}
+      {/* Full-Screen Hero Section with Undimmed Background Video */}
       <section className="relative min-h-[90vh] flex items-center bg-pcfi-green-900 overflow-hidden py-16 lg:py-24">
-        <div className="absolute inset-0">
-          <Image
-            src={heroBgImage}
-            alt={hero.heading || 'Cattle farm'}
-            fill
-            className="object-cover opacity-100"
-            priority
-            unoptimized={Boolean(hero.background_image_url)}
-          />
-          <div className="absolute inset-0 bg-hero-gradient" />
-        </div>
+        {/* Full Hero Background Video */}
+        <HeroBackgroundVideo videoUrl={VIDEO_URL} />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center">
-            
-            {/* Left Column Text */}
-            <div className="lg:col-span-6">
-              <div className="inline-flex items-center gap-2 bg-pcfi-gold-500/20 border border-pcfi-gold-400/40 rounded-full px-4 py-1.5 mb-6">
-                <Leaf className="w-3.5 h-3.5 text-pcfi-gold-400" />
-                <span className="text-pcfi-gold-300 text-xs font-medium">Healthy Cow, Happy Farmer!</span>
-              </div>
-              <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-                {hero.heading}
-              </h1>
-              <p className="text-pcfi-green-100 text-lg md:text-xl mb-8 leading-relaxed max-w-2xl">
-                {hero.description}
-              </p>
-              <div className="flex flex-wrap gap-4">
-                <Link href={hero.primary_cta_link} className="btn-primary">
-                  <Phone className="w-4 h-4" />
-                  {hero.primary_cta_text}
-                </Link>
-                <Link href={hero.secondary_cta_link} className="btn-secondary">
-                  {hero.secondary_cta_text}
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full pointer-events-none">
+          <div className="max-w-3xl pointer-events-auto">
+            <div className="inline-flex items-center gap-2 bg-pcfi-gold-500/30 border border-pcfi-gold-400/50 rounded-full px-4 py-1.5 mb-6 backdrop-blur-md">
+              <Leaf className="w-3.5 h-3.5 text-pcfi-gold-400" />
+              <span className="text-pcfi-gold-300 text-xs font-medium">Healthy Cow, Happy Farmer!</span>
             </div>
-
-            {/* Right Column Video Player */}
-            <div className="lg:col-span-6 w-full flex flex-col justify-center">
-              <CustomHeroVideoPlayer videoUrl={VIDEO_URL} />
+            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight drop-shadow-lg">
+              {hero.heading}
+            </h1>
+            <p className="text-white text-lg md:text-xl mb-8 leading-relaxed max-w-2xl drop-shadow-md">
+              {hero.description}
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <Link href={hero.primary_cta_link} className="btn-primary">
+                <Phone className="w-4 h-4" />
+                {hero.primary_cta_text}
+              </Link>
+              <Link href={hero.secondary_cta_link} className="btn-secondary">
+                {hero.secondary_cta_text}
+                <ArrowRight className="w-4 h-4" />
+              </Link>
             </div>
-
           </div>
         </div>
 
         {/* Floating Stats Bar */}
-        <div className="absolute bottom-6 right-8 hidden xl:flex gap-4 z-10">
+        <div className="absolute bottom-6 right-8 hidden xl:flex gap-4 z-10 pointer-events-none">
           {[
             { val: '6+', label: 'Years Experience' },
             { val: '100%', label: 'Natural Feed' },
             { val: '500+', label: 'Happy Farmers' },
           ].map((stat) => (
-            <div key={stat.label} className="bg-white/10 backdrop-blur-md rounded-xl px-5 py-3 text-center border border-white/20">
+            <div key={stat.label} className="bg-black/50 backdrop-blur-md rounded-xl px-5 py-3 text-center border border-white/20">
               <p className="text-pcfi-gold-300 text-xl font-bold font-display">{stat.val}</p>
               <p className="text-white text-[10px] mt-0.5">{stat.label}</p>
             </div>
