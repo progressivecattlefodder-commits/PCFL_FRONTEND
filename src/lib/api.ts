@@ -1,263 +1,339 @@
-import axios, { AxiosInstance } from 'axios';
-import Cookies from 'js-cookie';
-import { GalleryItem } from '@/types';
+import {
+  ApiResponse,
+  User,
+  BoardMember,
+  Product,
+  GalleryItem,
+  ContentBlock,
+  HeroSection,
+  DashboardStats,
+  LoginResponse,
+  ContactInfo,
+} from '@/types';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://pcfl-backend.onrender.com';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
-export interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-}
+/**
+ * Token and LocalStorage Management
+ */
+export const getToken = (): string | null => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('token');
+  }
+  return null;
+};
 
-class ApiClient {
-  private client: AxiosInstance;
+export const setToken = (token: string): void => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('token', token);
+  }
+};
 
-  constructor() {
-    this.client = axios.create({
-      baseURL: BASE_URL,
-      headers: { 'Content-Type': 'application/json' },
-    });
+export const removeToken = (): void => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('token');
+  }
+};
 
-    this.client.interceptors.request.use((config) => {
-      const token = Cookies.get('auth_token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    });
+/**
+ * Base Headers Builder
+ */
+const getHeaders = (isFormData: boolean = false): Record<string, string> => {
+  const headers: Record<string, string> = {};
+  const token = getToken();
 
-    this.client.interceptors.response.use(
-      (res) => res,
-      (err) => {
-        if (err.response?.status === 401) {
-          Cookies.remove('auth_token');
-          if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) {
-            window.location.href = '/auth/login';
-          }
-        }
-        return Promise.reject(err);
-      }
-    );
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
-  // Media & File Uploads
-  async uploadMedia(file: File): Promise<{ id: string; url: string }> {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const res = await this.client.post('/api/admin/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return res.data;
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json';
+    headers['Accept'] = 'application/json';
   }
 
-  async uploadImage(fileOrFormData: File | FormData): Promise<{ success: boolean; url: string; data: { url: string } }> {
-    let file: File;
+  return headers;
+};
 
-    if (fileOrFormData instanceof FormData) {
-      file = fileOrFormData.get('file') as File;
-    } else {
-      file = fileOrFormData;
+/**
+ * Core Request Fetcher Handler
+ */
+async function fetcher<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<ApiResponse<T>> {
+  const isFormData = options.body instanceof FormData;
+  const headers = {
+    ...getHeaders(isFormData),
+    ...(options.headers as Record<string, string>),
+  };
+
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers,
+    });
+
+    // Handle Unauthorized Session Expiration
+    if (response.status === 401) {
+      removeToken();
+      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+        window.location.href = '/login';
+      }
+      return {
+        success: false,
+        error: 'Unauthorized access. Please log in again.',
+      };
     }
 
-    const res = await this.uploadMedia(file);
+    const contentType = response.headers.get('content-type');
+    let data: unknown;
+
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      data = await response.text();
+    }
+
+    if (!response.ok) {
+      const errorMessage =
+        (data as Record<string, string>)?.message ||
+        (data as Record<string, string>)?.error ||
+        `HTTP Error: ${response.status} ${response.statusText}`;
+      
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+
+    // Normalize response structure
+    if (typeof data === 'object' && data !== null && 'success' in data) {
+      return data as ApiResponse<T>;
+    }
 
     return {
       success: true,
-      url: res.url,
-      data: { url: res.url },
+      data: data as T,
     };
-  }
-
-  // Auth
-  async login(email: string, password: string) {
-    const res = await this.client.post('/api/auth/login', { email, password });
-    return res.data;
-  }
-
-  async logout() {
-    const res = await this.client.post('/api/auth/logout');
-    Cookies.remove('auth_token');
-    return res.data;
-  }
-
-  async getMe() {
-    const res = await this.client.get('/api/auth/me');
-    return res.data;
-  }
-
-  // Public
-  async getHero() {
-    const res = await this.client.get('/api/public/hero');
-    return res.data;
-  }
-
-  async updateHero(data: Record<string, unknown>) {
-    const res = await this.client.put('/api/admin/hero', data);
-    return res.data;
-  }
-
-  async getBoardMembers() {
-    const res = await this.client.get('/api/public/board_members');
-    return res.data;
-  }
-
-  async getPublicEmployees() {
-    const res = await this.client.get('/api/public/employees');
-    return res.data;
-  }
-
-  async getPublicProducts() {
-    const res = await this.client.get('/api/public/products');
-    return res.data;
-  }
-
-  async getPublicProduct(slug: string) {
-    const res = await this.client.get(`/api/public/products/${slug}`);
-    return res.data;
-  }
-
-  async getPublicGallery() {
-    const res = await this.client.get('/api/public/gallery');
-    return res.data;
-  }
-
-  async getContent(key: string) {
-    const res = await this.client.get(`/api/public/content/${key}`);
-    return res.data;
-  }
-
-  async getAbout() {
-    const res = await this.client.get('/api/public/about');
-    return res.data;
-  }
-
-  async getContactInfo() {
-    const res = await this.client.get('/api/public/contact-info');
-    return res.data;
-  }
-
-  // Admin - Stats
-  async getStats() {
-    const res = await this.client.get('/api/admin/stats');
-    return res.data;
-  }
-
-  // Admin - Board Members
-  async getAdminBoardMembers() {
-    const res = await this.client.get('/api/admin/board_members');
-    return res.data;
-  }
-
-  async createBoardMember(data: Record<string, unknown>) {
-    const res = await this.client.post('/api/admin/board_members', data);
-    return res.data;
-  }
-
-  async updateBoardMember(id: string | number, data: Record<string, unknown>) {
-    const res = await this.client.put(`/api/admin/board_members/${id}`, data);
-    return res.data;
-  }
-
-  async deleteBoardMember(id: string | number) {
-    const res = await this.client.delete(`/api/admin/board_members/${id}`);
-    return res.data;
-  }
-
-  // Admin - Products
-  async getAdminProducts() {
-    const res = await this.client.get('/api/admin/products');
-    return res.data;
-  }
-
-  async createProduct(data: Record<string, unknown>) {
-    const res = await this.client.post('/api/admin/products', data);
-    return res.data;
-  }
-
-  async updateProduct(id: string | number, data: Record<string, unknown>) {
-    const res = await this.client.put(`/api/admin/products/${id}`, data);
-    return res.data;
-  }
-
-  async deleteProduct(id: string | number) {
-    const res = await this.client.delete(`/api/admin/products/${id}`);
-    return res.data;
-  }
-
-  // Admin - Gallery
-  async getAdminGallery(): Promise<ApiResponse<GalleryItem[]>> {
-    const res = await this.client.get('/api/admin/gallery');
-    return res.data;
-  }
-
-  async createGalleryItem(data: Partial<GalleryItem>): Promise<ApiResponse<GalleryItem>> {
-    const res = await this.client.post('/api/admin/gallery', data);
-    return res.data;
-  }
-
-  async updateGalleryItem(id: string | number, data: Partial<GalleryItem>): Promise<ApiResponse<GalleryItem>> {
-    const res = await this.client.put(`/api/admin/gallery/${id}`, data);
-    return res.data;
-  }
-
-  async deleteGalleryItem(id: string | number): Promise<ApiResponse<null>> {
-    const res = await this.client.delete(`/api/admin/gallery/${id}`);
-    return res.data;
-  }
-
-  // Admin - Content
-  async getAdminContent() {
-    const res = await this.client.get('/api/admin/content');
-    return res.data;
-  }
-
-  async updateContent(key: string, data: Record<string, unknown>) {
-    const res = await this.client.put(`/api/admin/content/${key}`, data);
-    return res.data;
-  }
-
-  // Admin - Employees
-  async getEmployees() {
-    const res = await this.client.get('/api/admin/employees');
-    return res.data;
-  }
-
-  async createEmployee(data: FormData | Record<string, unknown>) {
-    const isFormData = data instanceof FormData;
-    const res = await this.client.post('/api/admin/employees', data, {
-      headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : {},
-    });
-    return res.data;
-  }
-
-  async updateEmployee(id: string | number, data: FormData | Record<string, unknown>) {
-    const isFormData = data instanceof FormData;
-    const res = await this.client.put(`/api/admin/employees/${id}`, data, {
-      headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : {},
-    });
-    return res.data;
-  }
-
-  async deleteEmployee(id: string | number) {
-    const res = await this.client.delete(`/api/admin/employees/${id}`);
-    return res.data;
-  }
-
-  async updateEmployeeRole(id: string | number, data: Record<string, unknown>) {
-    const res = await this.client.patch(`/api/admin/employees/${id}/role`, data);
-    return res.data;
-  }
-
-  async resetEmployeePassword(id: string | number, newPassword: string) {
-    const res = await this.client.post(`/api/admin/employees/${id}/reset-password`, {
-      new_password: newPassword,
-    });
-    return res.data;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Network failure or server un-reachable';
+    return {
+      success: false,
+      error: message,
+    };
   }
 }
 
-export const api = new ApiClient();
+/**
+ * API Client Interface Methods
+ */
+export const api = {
+  // -----------------------------
+  // Authentication & Session
+  // -----------------------------
+  login: async (credentials: Record<string, string>): Promise<ApiResponse<LoginResponse>> => {
+    const res = await fetcher<LoginResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
+    if (res.success && res.data?.token) {
+      setToken(res.data.token);
+    }
+    return res;
+  },
+
+  logout: async (): Promise<ApiResponse<{ message: string }>> => {
+    const res = await fetcher<{ message: string }>('/auth/logout', {
+      method: 'POST',
+    });
+    removeToken();
+    return res;
+  },
+
+  getCurrentUser: (): Promise<ApiResponse<User>> => {
+    return fetcher<User>('/auth/me');
+  },
+
+  updateProfile: (data: Partial<User>): Promise<ApiResponse<User>> => {
+    return fetcher<User>('/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // -----------------------------
+  // Media & File Uploads
+  // -----------------------------
+  uploadMedia: async (file: File): Promise<ApiResponse<{ id: string; url: string }>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return fetcher<{ id: string; url: string }>('/upload', {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
+  deleteMedia: (id: string): Promise<ApiResponse<{ success: boolean }>> => {
+    return fetcher<{ success: boolean }>(`/upload/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // -----------------------------
+  // Dashboard & Metrics
+  // -----------------------------
+  getDashboardStats: (): Promise<ApiResponse<DashboardStats>> => {
+    return fetcher<DashboardStats>('/admin/stats');
+  },
+
+  // -----------------------------
+  // Gallery Management
+  // -----------------------------
+  getGallery: (): Promise<ApiResponse<GalleryItem[]>> => {
+    return fetcher<GalleryItem[]>('/gallery');
+  },
+
+  getAdminGallery: (): Promise<ApiResponse<GalleryItem[]>> => {
+    return fetcher<GalleryItem[]>('/admin/gallery');
+  },
+
+  getGalleryItemById: (id: string): Promise<ApiResponse<GalleryItem>> => {
+    return fetcher<GalleryItem>(`/gallery/${id}`);
+  },
+
+  createGalleryItem: (data: Partial<GalleryItem>): Promise<ApiResponse<GalleryItem>> => {
+    return fetcher<GalleryItem>('/admin/gallery', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateGalleryItem: (id: string, data: Partial<GalleryItem>): Promise<ApiResponse<GalleryItem>> => {
+    return fetcher<GalleryItem>(`/admin/gallery/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteGalleryItem: (id: string): Promise<ApiResponse<{ success: boolean }>> => {
+    return fetcher<{ success: boolean }>(`/admin/gallery/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // -----------------------------
+  // Product Catalog Management
+  // -----------------------------
+  getProducts: (): Promise<ApiResponse<Product[]>> => {
+    return fetcher<Product[]>('/products');
+  },
+
+  getAdminProducts: (): Promise<ApiResponse<Product[]>> => {
+    return fetcher<Product[]>('/admin/products');
+  },
+
+  getProductBySlug: (slug: string): Promise<ApiResponse<Product>> => {
+    return fetcher<Product>(`/products/${slug}`);
+  },
+
+  createProduct: (data: Partial<Product>): Promise<ApiResponse<Product>> => {
+    return fetcher<Product>('/admin/products', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateProduct: (id: string, data: Partial<Product>): Promise<ApiResponse<Product>> => {
+    return fetcher<Product>(`/admin/products/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteProduct: (id: string): Promise<ApiResponse<{ success: boolean }>> => {
+    return fetcher<{ success: boolean }>(`/admin/products/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // -----------------------------
+  // Board Members Management
+  // -----------------------------
+  getBoardMembers: (): Promise<ApiResponse<BoardMember[]>> => {
+    return fetcher<BoardMember[]>('/board-members');
+  },
+
+  getAdminBoardMembers: (): Promise<ApiResponse<BoardMember[]>> => {
+    return fetcher<BoardMember[]>('/admin/board-members');
+  },
+
+  getBoardMemberById: (id: string): Promise<ApiResponse<BoardMember>> => {
+    return fetcher<BoardMember>(`/board-members/${id}`);
+  },
+
+  createBoardMember: (data: Partial<BoardMember>): Promise<ApiResponse<BoardMember>> => {
+    return fetcher<BoardMember>('/admin/board-members', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateBoardMember: (id: string, data: Partial<BoardMember>): Promise<ApiResponse<BoardMember>> => {
+    return fetcher<BoardMember>(`/admin/board-members/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteBoardMember: (id: string): Promise<ApiResponse<{ success: boolean }>> => {
+    return fetcher<{ success: boolean }>(`/admin/board-members/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // -----------------------------
+  // Hero Section & CMS Content
+  // -----------------------------
+  getHeroSection: (): Promise<ApiResponse<HeroSection>> => {
+    return fetcher<HeroSection>('/hero');
+  },
+
+  updateHeroSection: (data: Partial<HeroSection>): Promise<ApiResponse<HeroSection>> => {
+    return fetcher<HeroSection>('/admin/hero', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  getContentBlocks: (): Promise<ApiResponse<ContentBlock[]>> => {
+    return fetcher<ContentBlock[]>('/content-blocks');
+  },
+
+  getContentBlockByKey: (key: string): Promise<ApiResponse<ContentBlock>> => {
+    return fetcher<ContentBlock>(`/content-blocks/${key}`);
+  },
+
+  updateContentBlock: (id: string, data: Partial<ContentBlock>): Promise<ApiResponse<ContentBlock>> => {
+    return fetcher<ContentBlock>(`/admin/content-blocks/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // -----------------------------
+  // Contact & General Site Settings
+  // -----------------------------
+  getContactInfo: (): Promise<ApiResponse<ContactInfo>> => {
+    return fetcher<ContactInfo>('/contact-info');
+  },
+
+  updateContactInfo: (data: Partial<ContactInfo>): Promise<ApiResponse<ContactInfo>> => {
+    return fetcher<ContactInfo>('/admin/contact-info', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+export default api;
