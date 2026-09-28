@@ -28,7 +28,7 @@ import { api } from '@/lib/api';
 import type {
   ApiResponse,
   GalleryItem,
-} from '@/types';
+} from '@/types/index';
 
 import Modal from '@/components/ui/Modal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';

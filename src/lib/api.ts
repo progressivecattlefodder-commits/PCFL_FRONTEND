@@ -1,10 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import Cookies from 'js-cookie';
 
-import type {
-  ApiResponse,
-  GalleryItem,
-} from '@/types';
+import type { ApiResponse, GalleryItem } from '@/types';
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
