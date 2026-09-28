@@ -9,8 +9,8 @@ import { ContactInfo } from '@/types';
 import { IMAGE } from '@/lib/assets';
 
 const defaultContact: ContactInfo = {
-  phone: '+977-9714503903 / +977-9714503906',
-  email: 'info@pcfl.com',
+  phone: '+977-9714503903 / +977-9714503906, 01 5930425 (tel)',
+  email: 'progressive2078cattle@gmail.com',
   address: 'Chapali, Budhanilkantha, Kathmandu',
   social: {
     facebook: 'https://www.facebook.com/profile.php?id=61592841761281',

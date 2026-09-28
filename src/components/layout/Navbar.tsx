@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Menu, X, ChevronDown, Images } from 'lucide-react';
+import { Menu, X, ChevronDown } from 'lucide-react';
 import { clsx } from 'clsx';
 import { IMAGE } from '@/lib/assets';
 
@@ -13,8 +13,8 @@ const navLinks = [
     label: 'Products and Services',
     href: '/products',
     children: [
-      { label: 'Cattle Feed', href: '/products`' },
-      { label: 'Mash Cattle Feed', href: '/products' },
+      { label: 'Cattle Feed', href: '/products/cattle-feed' },
+      { label: 'Mash Cattle Feed', href: '/products/mash-cattle-feed' },
     ],
   },
   { label: 'Gallery', href: '/gallery' },
@@ -41,24 +41,27 @@ export default function Navbar() {
           : 'bg-pcfi-green-800/95 backdrop-blur-sm'
       )}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-20 ">
-        <div className="flex items-center  h-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo & Brand */}
           <Link href="/" className="flex items-center gap-3">
-          <Image className="cursor-pointer"
-            src={IMAGE.logo}
-            alt="Logo"
-            width={50}
-            height={50}
-          />
-            <div className="leading-tight ml-10  ">
-              <p className="text-white font-semibold text-sm ">Progressive Cattle Fodder</p>
+            <Image
+              className="cursor-pointer"
+              src={IMAGE.logo}
+              alt="Logo"
+              width={50}
+              height={50}
+            />
+            <div className="leading-tight">
+              <p className="text-white font-semibold text-sm">
+                Progressive Cattle Fodder
+              </p>
               <p className="text-pcfi-green-200 text-xs">Industries Ltd.</p>
             </div>
-            </Link>
-          
+          </Link>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-1 ml-80">
+          <div className="hidden md:flex items-center gap-1 ml-auto">
             {navLinks.map((link) =>
               link.children ? (
                 <div
@@ -67,10 +70,13 @@ export default function Navbar() {
                   onMouseEnter={() => setActiveDropdown(link.label)}
                   onMouseLeave={() => setActiveDropdown(null)}
                 >
-                  <button className="flex items-center gap-1 text-white hover:text-pcfi-gold-300 px-3 py-2 text-sm font-medium transition-colors">
+                  <Link
+                    href={link.href}
+                    className="flex items-center gap-1 text-white hover:text-pcfi-gold-300 px-3 py-2 text-sm font-medium transition-colors"
+                  >
                     {link.label}
                     <ChevronDown className="w-3.5 h-3.5" />
-                  </button>
+                  </Link>
                   {activeDropdown === link.label && (
                     <div className="absolute top-full left-0 bg-white shadow-xl rounded-lg overflow-hidden min-w-48 py-1">
                       {link.children.map((child) => (
@@ -97,7 +103,7 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile menu button */}
+          {/* Mobile Menu Button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
             className="md:hidden text-white hover:text-pcfi-gold-300 p-2"
