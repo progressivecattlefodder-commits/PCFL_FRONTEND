@@ -91,25 +91,55 @@ class ApiClient {
   // MEDIA / FILE UPLOADS
   // ============================================================
 
-  async uploadMedia(
-    file: File
-  ): Promise<{ id: string; url: string }> {
-    const formData = new FormData();
+  async uploadMedia(file: File): Promise<{ id: string; url: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
 
-    formData.append('file', file);
+  const res = await this.client.post("/upload", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
 
-    const response = await this.client.post(
-      '/api/admin/upload',
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
-    );
+  const response = res.data;
 
-    return response.data;
+  // Backend response:
+  // { success: true, data: { id, url } }
+  if (
+    response?.success === true &&
+    response?.data?.url
+  ) {
+    return {
+      id: response.data.id ?? "",
+      url: response.data.url,
+    };
   }
+
+  // Backend may return:
+  // { id, url }
+  if (response?.url) {
+    return {
+      id: response.id ?? "",
+      url: response.url,
+    };
+  }
+
+  // Some backends may return:
+  // { success: true, url }
+  if (
+    response?.success === true &&
+    response?.url
+  ) {
+    return {
+      id: response.id ?? "",
+      url: response.url,
+    };
+  }
+
+  console.error("Unexpected upload response:", response);
+
+  throw new Error("Invalid response from upload server");
+}
 
   /**
    * Compatibility helper used by older pages.
