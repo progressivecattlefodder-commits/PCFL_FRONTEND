@@ -15,10 +15,10 @@ const defaultContact: ContactInfo = {
   social: {
     facebook: 'https://www.facebook.com/profile.php?id=61592841761281',
     instagram: '#',
-    youtube: '#',
-    linkedin: '#',
+    youtube: 'https://www.youtube.com/channel/UC5D_l5dmyWjbXjwULrkKl7A',
+    linkedin: 'https://www.linkedin.com/company/143695943',
   },
-  tagline: 'Healthy Cow, Happy Farmer!',
+  tagline: "Healthy Cow, Happy Farmer",
 };
 
 export default function Footer() {
