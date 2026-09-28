@@ -1,4 +1,8 @@
-export type UserRole = 'superadmin' | 'admin' | 'editor' | 'viewer';
+export type UserRole =
+  | 'superadmin'
+  | 'admin'
+  | 'editor'
+  | 'viewer';
 
 export interface User {
   id: string;
@@ -50,9 +54,9 @@ export interface GalleryItem {
   category?: string;
   sort_order: number;
   is_published: boolean;
-  created_at: string;
-  updated_at: string;
-  created_by: string;
+  created_at?: string;
+  updated_at?: string;
+  created_by?: string;
 }
 
 export interface ContentBlock {
@@ -89,7 +93,7 @@ export interface DashboardStats {
   active_employees: number;
 }
 
-export interface ApiResponse<T> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;

@@ -24,8 +24,11 @@ import {
 
 import toast from 'react-hot-toast';
 
-import { api, ApiResponse } from '@/lib/api';
-import { GalleryItem } from '@/types';
+import { api } from '@/lib/api';
+import type {
+  ApiResponse,
+  GalleryItem,
+} from '@/types';
 
 import Modal from '@/components/ui/Modal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
@@ -50,12 +53,17 @@ const emptyForm: GalleryForm = {
 };
 
 export default function AdminGalleryPage() {
-  const [items, setItems] = useState<GalleryItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] =
+    useState<GalleryItem[]>([]);
 
-  const [search, setSearch] = useState('');
+  const [loading, setLoading] =
+    useState(true);
 
-  const [modalOpen, setModalOpen] = useState(false);
+  const [search, setSearch] =
+    useState('');
+
+  const [modalOpen, setModalOpen] =
+    useState(false);
 
   const [editingId, setEditingId] =
     useState<string | null>(null);
@@ -66,7 +74,8 @@ export default function AdminGalleryPage() {
   const [form, setForm] =
     useState<GalleryForm>(emptyForm);
 
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] =
+    useState(false);
 
   const [uploadingImage, setUploadingImage] =
     useState(false);
@@ -81,41 +90,43 @@ export default function AdminGalleryPage() {
   // FETCH GALLERY
   // ============================================================
 
-  const fetchItems = useCallback(async () => {
-    setLoading(true);
+  const fetchItems = useCallback(
+    async () => {
+      setLoading(true);
 
-    try {
-      const response = await api.getAdminGallery();
+      try {
+        const response =
+          await api.getAdminGallery();
 
-      if (
-        response?.success &&
-        Array.isArray(response.data)
-      ) {
-        setItems(response.data);
-      } else if (Array.isArray(response)) {
-        /**
-         * Compatibility with a backend that returns
-         * the array directly.
-         */
-        setItems(
-          response as unknown as GalleryItem[]
+        if (
+          response?.success &&
+          Array.isArray(response.data)
+        ) {
+          setItems(response.data);
+        } else if (
+          Array.isArray(response)
+        ) {
+          setItems(
+            response as unknown as GalleryItem[]
+          );
+        } else {
+          setItems([]);
+        }
+      } catch (error) {
+        console.error(
+          'Failed to load gallery items:',
+          error
         );
-      } else {
-        setItems([]);
-      }
-    } catch (error) {
-      console.error(
-        'Failed to load gallery items:',
-        error
-      );
 
-      toast.error(
-        'Failed to load gallery items'
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+        toast.error(
+          'Failed to load gallery items'
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     fetchItems();
@@ -126,7 +137,10 @@ export default function AdminGalleryPage() {
   // ============================================================
 
   const openCreate = () => {
-    setForm({ ...emptyForm });
+    setForm({
+      ...emptyForm,
+    });
+
     setEditingId(null);
     setModalOpen(true);
   };
@@ -135,17 +149,25 @@ export default function AdminGalleryPage() {
   // EDIT
   // ============================================================
 
-  const openEdit = (item: GalleryItem) => {
+  const openEdit = (
+    item: GalleryItem
+  ) => {
     setForm({
       title: item.title || '',
-      description: item.description || '',
-      image_url: item.image_url || '',
-      category: item.category || 'Production',
+      description:
+        item.description || '',
+      image_url:
+        item.image_url || '',
+      category:
+        item.category ||
+        'Production',
       sort_order:
-        typeof item.sort_order === 'number'
+        typeof item.sort_order ===
+        'number'
           ? item.sort_order
           : 0,
-      is_published: !!item.is_published,
+      is_published:
+        !!item.is_published,
     });
 
     setEditingId(item.id);
@@ -156,49 +178,58 @@ export default function AdminGalleryPage() {
   // IMAGE UPLOAD
   // ============================================================
 
-  const handleImageUpload = async (
-    event: ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
+  const handleImageUpload =
+    async (
+      event: ChangeEvent<HTMLInputElement>
+    ) => {
+      const file =
+        event.target.files?.[0];
 
-    if (!file) {
-      return;
-    }
+      if (!file) {
+        return;
+      }
 
-    setUploadingImage(true);
+      setUploadingImage(true);
 
-    try {
-      const response = await api.uploadMedia(file);
+      try {
+        const response =
+          await api.uploadMedia(file);
 
-      const imageUrl = response?.url;
+        const imageUrl =
+          response?.url;
 
-      if (imageUrl) {
-        setForm((current) => ({
-          ...current,
-          image_url: imageUrl,
-        }));
+        if (imageUrl) {
+          setForm((current) => ({
+            ...current,
+            image_url: imageUrl,
+          }));
 
-        toast.success('Image uploaded');
-      } else {
-        toast.error(
-          'Invalid response from upload server'
+          toast.success(
+            'Image uploaded'
+          );
+        } else {
+          toast.error(
+            'Invalid response from upload server'
+          );
+        }
+      } catch (error) {
+        console.error(
+          'Image upload failed:',
+          error
         );
-      }
-    } catch (error) {
-      console.error(
-        'Image upload failed:',
-        error
-      );
 
-      toast.error('Failed to upload image');
-    } finally {
-      setUploadingImage(false);
+        toast.error(
+          'Failed to upload image'
+        );
+      } finally {
+        setUploadingImage(false);
 
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        if (fileInputRef.current) {
+          fileInputRef.current.value =
+            '';
+        }
       }
-    }
-  };
+    };
 
   // ============================================================
   // SAVE
@@ -219,7 +250,8 @@ export default function AdminGalleryPage() {
     setSaving(true);
 
     try {
-      let response: ApiResponse<GalleryItem>;
+      let response:
+        ApiResponse<GalleryItem>;
 
       if (editingId) {
         response =
@@ -229,7 +261,9 @@ export default function AdminGalleryPage() {
           );
       } else {
         response =
-          await api.createGalleryItem(form);
+          await api.createGalleryItem(
+            form
+          );
       }
 
       if (
@@ -244,7 +278,9 @@ export default function AdminGalleryPage() {
 
         setModalOpen(false);
 
-        setForm({ ...emptyForm });
+        setForm({
+          ...emptyForm,
+        });
 
         setEditingId(null);
 
@@ -273,84 +309,95 @@ export default function AdminGalleryPage() {
   // DELETE
   // ============================================================
 
-  const handleDelete = async () => {
-    if (!deleteId) {
-      return;
-    }
+  const handleDelete =
+    async () => {
+      if (!deleteId) {
+        return;
+      }
 
-    try {
-      await api.deleteGalleryItem(deleteId);
+      try {
+        await api.deleteGalleryItem(
+          deleteId
+        );
 
-      toast.success(
-        'Gallery item deleted'
-      );
+        toast.success(
+          'Gallery item deleted'
+        );
 
-      setDeleteId(null);
+        setDeleteId(null);
 
-      await fetchItems();
-    } catch (error) {
-      console.error(
-        'Failed to delete gallery item:',
-        error
-      );
+        await fetchItems();
+      } catch (error) {
+        console.error(
+          'Failed to delete gallery item:',
+          error
+        );
 
-      toast.error(
-        'Failed to delete item'
-      );
-    }
-  };
+        toast.error(
+          'Failed to delete item'
+        );
+      }
+    };
 
   // ============================================================
   // PUBLISH / UNPUBLISH
   // ============================================================
 
-  const handleTogglePublish = async (
-    item: GalleryItem
-  ) => {
-    try {
-      await api.updateGalleryItem(
-        item.id,
-        {
-          is_published:
-            !item.is_published,
-        }
-      );
+  const handleTogglePublish =
+    async (
+      item: GalleryItem
+    ) => {
+      try {
+        await api.updateGalleryItem(
+          item.id,
+          {
+            is_published:
+              !item.is_published,
+          }
+        );
 
-      toast.success(
-        item.is_published
-          ? 'Unpublished'
-          : 'Published'
-      );
+        toast.success(
+          item.is_published
+            ? 'Unpublished'
+            : 'Published'
+        );
 
-      await fetchItems();
-    } catch (error) {
-      console.error(
-        'Failed to update status:',
-        error
-      );
+        await fetchItems();
+      } catch (error) {
+        console.error(
+          'Failed to update status:',
+          error
+        );
 
-      toast.error(
-        'Failed to update status'
-      );
-    }
-  };
+        toast.error(
+          'Failed to update status'
+        );
+      }
+    };
 
   // ============================================================
   // FILTER
   // ============================================================
 
   const normalizedSearch =
-    search.toLowerCase().trim();
+    search
+      .toLowerCase()
+      .trim();
 
-  const filtered = items.filter(
-    (item) =>
-      (item.title || '')
-        .toLowerCase()
-        .includes(normalizedSearch) ||
-      (item.category || '')
-        .toLowerCase()
-        .includes(normalizedSearch)
-  );
+  const filtered =
+    items.filter(
+      (item) =>
+        (item.title || '')
+          .toLowerCase()
+          .includes(
+            normalizedSearch
+          ) ||
+        (item.category || '')
+          .toLowerCase()
+          .includes(
+            normalizedSearch
+          )
+    );
 
   // ============================================================
   // RENDER
@@ -391,7 +438,9 @@ export default function AdminGalleryPage() {
             type="text"
             value={search}
             onChange={(event) =>
-              setSearch(event.target.value)
+              setSearch(
+                event.target.value
+              )
             }
             placeholder="Search gallery…"
             className="form-input pl-10 w-full"
@@ -403,12 +452,14 @@ export default function AdminGalleryPage() {
 
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {[...Array(8)].map((_, index) => (
-            <div
-              key={index}
-              className="aspect-square bg-gray-200 rounded-xl animate-pulse"
-            />
-          ))}
+          {[...Array(8)].map(
+            (_, index) => (
+              <div
+                key={index}
+                className="aspect-square bg-gray-200 rounded-xl animate-pulse"
+              />
+            )
+          )}
         </div>
       ) : filtered.length === 0 ? (
         <div className="admin-card text-center py-16 text-gray-400">
@@ -417,128 +468,139 @@ export default function AdminGalleryPage() {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
 
-          {filtered.map((item) => (
-            <div
-              key={item.id}
-              className="group relative rounded-xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all bg-white flex flex-col justify-between"
-            >
+          {filtered.map(
+            (item) => (
+              <div
+                key={item.id}
+                className="group relative rounded-xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all bg-white flex flex-col justify-between"
+              >
 
-              {/* IMAGE */}
+                {/* IMAGE */}
 
-              <div className="relative aspect-square bg-gray-100">
+                <div className="relative aspect-square bg-gray-100">
 
-                {item.image_url &&
-                !imageError[item.id] ? (
-                  <Image
-                    src={item.image_url}
-                    alt={
-                      item.title ||
-                      'Gallery image'
-                    }
-                    fill
-                    unoptimized
-                    className="object-cover"
-                    onError={() =>
-                      setImageError(
-                        (previous) => ({
-                          ...previous,
-                          [item.id]: true,
-                        })
-                      )
-                    }
-                  />
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 text-xs gap-1">
-                    <ImageOff className="w-6 h-6" />
-                    <span>No Image</span>
+                  {item.image_url &&
+                  !imageError[item.id] ? (
+                    <Image
+                      src={
+                        item.image_url
+                      }
+                      alt={
+                        item.title ||
+                        'Gallery image'
+                      }
+                      fill
+                      unoptimized
+                      className="object-cover"
+                      onError={() =>
+                        setImageError(
+                          (
+                            previous
+                          ) => ({
+                            ...previous,
+                            [item.id]:
+                              true,
+                          })
+                        )
+                      }
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 text-xs gap-1">
+                      <ImageOff className="w-6 h-6" />
+                      <span>
+                        No Image
+                      </span>
+                    </div>
+                  )}
+
+                  {/* ACTIONS */}
+
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+
+                    <button
+                      onClick={() =>
+                        handleTogglePublish(
+                          item
+                        )
+                      }
+                      className="p-2 bg-white rounded-lg hover:bg-amber-50 text-amber-600 transition-colors"
+                      title={
+                        item.is_published
+                          ? 'Unpublish'
+                          : 'Publish'
+                      }
+                    >
+                      {item.is_published ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        openEdit(item)
+                      }
+                      className="p-2 bg-white rounded-lg hover:bg-emerald-50 text-emerald-600 transition-colors"
+                      title="Edit item"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        setDeleteId(
+                          item.id
+                        )
+                      }
+                      className="p-2 bg-white rounded-lg hover:bg-red-50 text-red-600 transition-colors"
+                      title="Delete item"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+
                   </div>
-                )}
-
-                {/* ACTIONS */}
-
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-
-                  <button
-                    onClick={() =>
-                      handleTogglePublish(item)
-                    }
-                    className="p-2 bg-white rounded-lg hover:bg-amber-50 text-amber-600 transition-colors"
-                    title={
-                      item.is_published
-                        ? 'Unpublish'
-                        : 'Publish'
-                    }
-                  >
-                    {item.is_published ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      openEdit(item)
-                    }
-                    className="p-2 bg-white rounded-lg hover:bg-emerald-50 text-emerald-600 transition-colors"
-                    title="Edit item"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      setDeleteId(item.id)
-                    }
-                    className="p-2 bg-white rounded-lg hover:bg-red-50 text-red-600 transition-colors"
-                    title="Delete item"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-
                 </div>
-              </div>
 
-              {/* INFO */}
+                {/* INFO */}
 
-              <div className="p-3 bg-white border-t border-gray-100">
+                <div className="p-3 bg-white border-t border-gray-100">
 
-                <p className="text-sm font-medium text-gray-900 truncate">
-                  {item.title ||
-                    'Untitled'}
-                </p>
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {item.title ||
+                      'Untitled'}
+                  </p>
 
-                <div className="flex items-center justify-between mt-1.5">
+                  <div className="flex items-center justify-between mt-1.5">
 
-                  <span className="text-xs text-gray-400">
-                    {item.category ||
-                      'Uncategorized'}
-                  </span>
+                    <span className="text-xs text-gray-400">
+                      {item.category ||
+                        'Uncategorized'}
+                    </span>
 
-                  <Badge
-                    variant={
-                      item.is_published
-                        ? 'green'
-                        : 'gray'
-                    }
-                  >
-                    {item.is_published
-                      ? 'Live'
-                      : 'Hidden'}
-                  </Badge>
+                    <Badge
+                      variant={
+                        item.is_published
+                          ? 'green'
+                          : 'gray'
+                      }
+                    >
+                      {item.is_published
+                        ? 'Live'
+                        : 'Hidden'}
+                    </Badge>
 
+                  </div>
                 </div>
-              </div>
 
-            </div>
-          ))}
+              </div>
+            )
+          )}
 
         </div>
       )}
 
-      {/* ======================================================
-          CREATE / EDIT MODAL
-      ====================================================== */}
+      {/* CREATE / EDIT MODAL */}
 
       <Modal
         open={modalOpen}
@@ -566,11 +628,14 @@ export default function AdminGalleryPage() {
               className="form-input w-full"
               value={form.title}
               onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  title:
-                    event.target.value,
-                }))
+                setForm(
+                  (current) => ({
+                    ...current,
+                    title:
+                      event.target
+                        .value,
+                  })
+                )
               }
               placeholder="e.g. Corn Silage Process"
             />
@@ -587,13 +652,20 @@ export default function AdminGalleryPage() {
 
               <input
                 className="form-input flex-1"
-                value={form.image_url}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    image_url:
-                      event.target.value,
-                  }))
+                value={
+                  form.image_url
+                }
+                onChange={(
+                  event
+                ) =>
+                  setForm(
+                    (current) => ({
+                      ...current,
+                      image_url:
+                        event.target
+                          .value,
+                    })
+                  )
                 }
                 placeholder="https://... or upload a file"
               />
@@ -609,7 +681,9 @@ export default function AdminGalleryPage() {
                 Upload
 
                 <input
-                  ref={fileInputRef}
+                  ref={
+                    fileInputRef
+                  }
                   type="file"
                   accept="image/*"
                   onChange={
@@ -627,7 +701,9 @@ export default function AdminGalleryPage() {
           {form.image_url && (
             <div className="relative h-40 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
               <Image
-                src={form.image_url}
+                src={
+                  form.image_url
+                }
                 alt="Preview"
                 fill
                 className="object-cover"
@@ -645,13 +721,20 @@ export default function AdminGalleryPage() {
 
             <textarea
               className="form-input w-full h-20 resize-none"
-              value={form.description}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  description:
-                    event.target.value,
-                }))
+              value={
+                form.description
+              }
+              onChange={(
+                event
+              ) =>
+                setForm(
+                  (current) => ({
+                    ...current,
+                    description:
+                      event.target
+                        .value,
+                  })
+                )
               }
               placeholder="Optional description…"
             />
@@ -668,13 +751,20 @@ export default function AdminGalleryPage() {
 
               <select
                 className="form-input w-full"
-                value={form.category}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    category:
-                      event.target.value,
-                  }))
+                value={
+                  form.category
+                }
+                onChange={(
+                  event
+                ) =>
+                  setForm(
+                    (current) => ({
+                      ...current,
+                      category:
+                        event.target
+                          .value,
+                    })
+                  )
                 }
               >
                 <option value="Production">
@@ -703,21 +793,30 @@ export default function AdminGalleryPage() {
               <input
                 type="number"
                 className="form-input w-full"
-                value={form.sort_order}
-                onChange={(event) => {
+                value={
+                  form.sort_order
+                }
+                onChange={(
+                  event
+                ) => {
                   const value =
                     parseInt(
-                      event.target.value,
+                      event.target
+                        .value,
                       10
                     );
 
-                  setForm((current) => ({
-                    ...current,
-                    sort_order:
-                      Number.isNaN(value)
-                        ? 0
-                        : value,
-                  }));
+                  setForm(
+                    (current) => ({
+                      ...current,
+                      sort_order:
+                        Number.isNaN(
+                          value
+                        )
+                          ? 0
+                          : value,
+                    })
+                  );
                 }}
               />
             </div>
@@ -731,13 +830,20 @@ export default function AdminGalleryPage() {
             <input
               type="checkbox"
               id="gallery_published"
-              checked={form.is_published}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  is_published:
-                    event.target.checked,
-                }))
+              checked={
+                form.is_published
+              }
+              onChange={(
+                event
+              ) =>
+                setForm(
+                  (current) => ({
+                    ...current,
+                    is_published:
+                      event.target
+                        .checked,
+                  })
+                )
               }
               className="w-4 h-4 rounded text-emerald-600 border-gray-300 focus:ring-emerald-500"
             />
@@ -793,7 +899,9 @@ export default function AdminGalleryPage() {
         message="This will permanently remove the image from the gallery."
         confirmLabel="Delete"
         danger
-        onConfirm={handleDelete}
+        onConfirm={
+          handleDelete
+        }
         onCancel={() =>
           setDeleteId(null)
         }

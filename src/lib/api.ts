@@ -1,20 +1,14 @@
 import axios, { AxiosInstance } from 'axios';
 import Cookies from 'js-cookie';
 
+import type {
+  ApiResponse,
+  GalleryItem,
+} from '@/types';
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   'https://pcfl-backend.onrender.com';
-
-/**
- * Generic API response definition.
- */
-export interface ApiResponse<T = unknown> {
-  success: boolean;
-  data?: T;
-  message?: string;
-  error?: string;
-}
 
 /**
  * Generic record used for flexible API payloads.
@@ -23,8 +17,15 @@ type ApiData = Record<string, unknown>;
 
 /**
  * User Role & Entity Types
+ *
+ * These are kept exported from this file for compatibility
+ * with any existing code importing them from '@/lib/api'.
  */
-export type UserRole = 'superadmin' | 'admin' | 'editor' | 'viewer';
+export type UserRole =
+  | 'superadmin'
+  | 'admin'
+  | 'editor'
+  | 'viewer';
 
 export interface User {
   id: string;
@@ -66,18 +67,6 @@ export interface Product {
   created_at: string;
   updated_at: string;
   created_by: string;
-}
-
-export interface GalleryItem {
-  id: string;
-  title: string;
-  description?: string;
-  image_url: string;
-  category?: string;
-  sort_order: number;
-  is_published: boolean;
-  created_at?: string;
-  updated_at?: string;
 }
 
 export interface ContentBlock {
@@ -152,9 +141,11 @@ class ApiClient {
     // Attach authentication token to requests
     this.client.interceptors.request.use((config) => {
       const token = Cookies.get('auth_token');
+
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
+
       return config;
     });
 
@@ -164,6 +155,7 @@ class ApiClient {
       (error) => {
         if (error.response?.status === 401) {
           Cookies.remove('auth_token');
+
           if (
             typeof window !== 'undefined' &&
             window.location.pathname.startsWith('/admin')
@@ -171,6 +163,7 @@ class ApiClient {
             window.location.href = '/auth/login';
           }
         }
+
         return Promise.reject(error);
       }
     );
@@ -180,19 +173,29 @@ class ApiClient {
   // MEDIA / FILE UPLOADS
   // ============================================================
 
-  async uploadMedia(file: File): Promise<{ id: string; url: string }> {
+  async uploadMedia(
+    file: File
+  ): Promise<{ id: string; url: string }> {
     const formData = new FormData();
+
     formData.append('file', file);
 
-    const res = await this.client.post('/api/admin/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const res = await this.client.post(
+      '/api/admin/upload',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
 
     const response = res.data;
 
-    if (response?.success === true && response?.data?.url) {
+    if (
+      response?.success === true &&
+      response?.data?.url
+    ) {
       return {
         id: response.data.id ?? '',
         url: response.data.url,
@@ -206,15 +209,24 @@ class ApiClient {
       };
     }
 
-    if (response?.success === true && response?.url) {
+    if (
+      response?.success === true &&
+      response?.url
+    ) {
       return {
         id: response.id ?? '',
         url: response.url,
       };
     }
 
-    console.error('Unexpected upload response:', response);
-    throw new Error('Invalid response from upload server');
+    console.error(
+      'Unexpected upload response:',
+      response
+    );
+
+    throw new Error(
+      'Invalid response from upload server'
+    );
   }
 
   async uploadImage(
@@ -229,7 +241,9 @@ class ApiClient {
     let file: File | null = null;
 
     if (fileOrFormData instanceof FormData) {
-      const formFile = fileOrFormData.get('file');
+      const formFile =
+        fileOrFormData.get('file');
+
       if (formFile instanceof File) {
         file = formFile;
       }
@@ -238,10 +252,13 @@ class ApiClient {
     }
 
     if (!file) {
-      throw new Error('No file provided for upload');
+      throw new Error(
+        'No file provided for upload'
+      );
     }
 
-    const response = await this.uploadMedia(file);
+    const response =
+      await this.uploadMedia(file);
 
     return {
       success: true,
@@ -257,12 +274,20 @@ class ApiClient {
   // ============================================================
 
   async login(
-    emailOrCredentials: string | Record<string, string>,
+    emailOrCredentials:
+      | string
+      | Record<string, string>,
     password?: string
   ) {
-    let credentials: Record<string, string>;
+    let credentials: Record<
+      string,
+      string
+    >;
 
-    if (typeof emailOrCredentials === 'string') {
+    if (
+      typeof emailOrCredentials ===
+      'string'
+    ) {
       credentials = {
         email: emailOrCredentials,
         password: password || '',
@@ -271,18 +296,32 @@ class ApiClient {
       credentials = emailOrCredentials;
     }
 
-    const response = await this.client.post('/api/auth/login', credentials);
+    const response =
+      await this.client.post(
+        '/api/auth/login',
+        credentials
+      );
+
     return response.data;
   }
 
   async logout() {
-    const response = await this.client.post('/api/auth/logout');
+    const response =
+      await this.client.post(
+        '/api/auth/logout'
+      );
+
     Cookies.remove('auth_token');
+
     return response.data;
   }
 
   async getMe() {
-    const response = await this.client.get('/api/auth/me');
+    const response =
+      await this.client.get(
+        '/api/auth/me'
+      );
+
     return response.data;
   }
 
@@ -291,51 +330,91 @@ class ApiClient {
   // ============================================================
 
   async getHero() {
-    const response = await this.client.get('/api/public/hero');
+    const response =
+      await this.client.get(
+        '/api/public/hero'
+      );
+
     return response.data;
   }
 
   async getBoardMembers() {
-    const response = await this.client.get('/api/public/board_members');
+    const response =
+      await this.client.get(
+        '/api/public/board_members'
+      );
+
     return response.data;
   }
 
   async getPublicEmployees() {
-    const response = await this.client.get('/api/public/employees');
+    const response =
+      await this.client.get(
+        '/api/public/employees'
+      );
+
     return response.data;
   }
 
   async getPublicProducts() {
-    const response = await this.client.get('/api/public/products');
+    const response =
+      await this.client.get(
+        '/api/public/products'
+      );
+
     return response.data;
   }
 
-  async getPublicProduct(slug: string) {
-    const response = await this.client.get(
-      `/api/public/products/${encodeURIComponent(slug)}`
-    );
+  async getPublicProduct(
+    slug: string
+  ) {
+    const response =
+      await this.client.get(
+        `/api/public/products/${encodeURIComponent(
+          slug
+        )}`
+      );
+
     return response.data;
   }
 
-  async getPublicGallery() {
-    const response = await this.client.get('/api/public/gallery');
+  async getPublicGallery(): Promise<
+    ApiResponse<GalleryItem[]>
+  > {
+    const response =
+      await this.client.get(
+        '/api/public/gallery'
+      );
+
     return response.data;
   }
 
   async getContent(key: string) {
-    const response = await this.client.get(
-      `/api/public/content/${encodeURIComponent(key)}`
-    );
+    const response =
+      await this.client.get(
+        `/api/public/content/${encodeURIComponent(
+          key
+        )}`
+      );
+
     return response.data;
   }
 
   async getAbout() {
-    const response = await this.client.get('/api/public/about');
+    const response =
+      await this.client.get(
+        '/api/public/about'
+      );
+
     return response.data;
   }
 
   async getContactInfo() {
-    const response = await this.client.get('/api/public/contact-info');
+    const response =
+      await this.client.get(
+        '/api/public/contact-info'
+      );
+
     return response.data;
   }
 
@@ -344,137 +423,310 @@ class ApiClient {
   // ============================================================
 
   async getStats() {
-    const response = await this.client.get('/api/admin/stats');
+    const response =
+      await this.client.get(
+        '/api/admin/stats'
+      );
+
     return response.data;
   }
 
-  async updateHero(data: ApiData) {
-    const response = await this.client.put('/api/admin/hero', data);
+  async updateHero(
+    data: ApiData
+  ) {
+    const response =
+      await this.client.put(
+        '/api/admin/hero',
+        data
+      );
+
     return response.data;
   }
 
-  // Board Members (Admin)
+  // ============================================================
+  // BOARD MEMBERS
+  // ============================================================
+
   async getAdminBoardMembers() {
-    const response = await this.client.get('/api/admin/board_members');
+    const response =
+      await this.client.get(
+        '/api/admin/board_members'
+      );
+
     return response.data;
   }
 
-  async createBoardMember(data: ApiData) {
-    const response = await this.client.post('/api/admin/board_members', data);
+  async createBoardMember(
+    data: ApiData
+  ) {
+    const response =
+      await this.client.post(
+        '/api/admin/board_members',
+        data
+      );
+
     return response.data;
   }
 
-  async updateBoardMember(id: string | number, data: ApiData) {
-    const response = await this.client.put(`/api/admin/board_members/${id}`, data);
+  async updateBoardMember(
+    id: string | number,
+    data: ApiData
+  ) {
+    const response =
+      await this.client.put(
+        `/api/admin/board_members/${id}`,
+        data
+      );
+
     return response.data;
   }
 
-  async deleteBoardMember(id: string | number) {
-    const response = await this.client.delete(`/api/admin/board_members/${id}`);
+  async deleteBoardMember(
+    id: string | number
+  ) {
+    const response =
+      await this.client.delete(
+        `/api/admin/board_members/${id}`
+      );
+
     return response.data;
   }
 
-  // Products (Admin)
+  // ============================================================
+  // PRODUCTS
+  // ============================================================
+
   async getAdminProducts() {
-    const response = await this.client.get('/api/admin/products');
+    const response =
+      await this.client.get(
+        '/api/admin/products'
+      );
+
     return response.data;
   }
 
-  async createProduct(data: ApiData) {
-    const response = await this.client.post('/api/admin/products', data);
+  async createProduct(
+    data: ApiData
+  ) {
+    const response =
+      await this.client.post(
+        '/api/admin/products',
+        data
+      );
+
     return response.data;
   }
 
-  async updateProduct(id: string | number, data: ApiData) {
-    const response = await this.client.put(`/api/admin/products/${id}`, data);
+  async updateProduct(
+    id: string | number,
+    data: ApiData
+  ) {
+    const response =
+      await this.client.put(
+        `/api/admin/products/${id}`,
+        data
+      );
+
     return response.data;
   }
 
-  async deleteProduct(id: string | number) {
-    const response = await this.client.delete(`/api/admin/products/${id}`);
+  async deleteProduct(
+    id: string | number
+  ) {
+    const response =
+      await this.client.delete(
+        `/api/admin/products/${id}`
+      );
+
     return response.data;
   }
 
-  // Gallery (Admin)
-  async getAdminGallery(): Promise<ApiResponse<GalleryItem[]>> {
-    const response = await this.client.get('/api/admin/gallery');
+  // ============================================================
+  // GALLERY
+  // ============================================================
+
+  async getAdminGallery(): Promise<
+    ApiResponse<GalleryItem[]>
+  > {
+    const response =
+      await this.client.get(
+        '/api/admin/gallery'
+      );
+
     return response.data;
   }
 
   async createGalleryItem(
     data: Partial<GalleryItem>
-  ): Promise<ApiResponse<GalleryItem>> {
-    const response = await this.client.post('/api/admin/gallery', data);
+  ): Promise<
+    ApiResponse<GalleryItem>
+  > {
+    const response =
+      await this.client.post(
+        '/api/admin/gallery',
+        data
+      );
+
     return response.data;
   }
 
   async updateGalleryItem(
     id: string | number,
     data: Partial<GalleryItem>
-  ): Promise<ApiResponse<GalleryItem>> {
-    const response = await this.client.put(`/api/admin/gallery/${id}`, data);
+  ): Promise<
+    ApiResponse<GalleryItem>
+  > {
+    const response =
+      await this.client.put(
+        `/api/admin/gallery/${id}`,
+        data
+      );
+
     return response.data;
   }
 
-  async deleteGalleryItem(id: string | number): Promise<ApiResponse<null>> {
-    const response = await this.client.delete(`/api/admin/gallery/${id}`);
+  async deleteGalleryItem(
+    id: string | number
+  ): Promise<
+    ApiResponse<null>
+  > {
+    const response =
+      await this.client.delete(
+        `/api/admin/gallery/${id}`
+      );
+
     return response.data;
   }
 
-  // Content (Admin)
+  // ============================================================
+  // CONTENT
+  // ============================================================
+
   async getAdminContent() {
-    const response = await this.client.get('/api/admin/content');
+    const response =
+      await this.client.get(
+        '/api/admin/content'
+      );
+
     return response.data;
   }
 
-  async updateContent(key: string, data: ApiData) {
-    const response = await this.client.put(
-      `/api/admin/content/${encodeURIComponent(key)}`,
-      data
-    );
+  async updateContent(
+    key: string,
+    data: ApiData
+  ) {
+    const response =
+      await this.client.put(
+        `/api/admin/content/${encodeURIComponent(
+          key
+        )}`,
+        data
+      );
+
     return response.data;
   }
 
-  // Employees (Admin)
+  // ============================================================
+  // EMPLOYEES
+  // ============================================================
+
   async getEmployees() {
-    const response = await this.client.get('/api/admin/employees');
+    const response =
+      await this.client.get(
+        '/api/admin/employees'
+      );
+
     return response.data;
   }
 
-  async createEmployee(data: FormData | ApiData) {
-    const isFormData = data instanceof FormData;
-    const response = await this.client.post('/api/admin/employees', data, {
-      headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : {},
-    });
+  async createEmployee(
+    data: FormData | ApiData
+  ) {
+    const isFormData =
+      data instanceof FormData;
+
+    const response =
+      await this.client.post(
+        '/api/admin/employees',
+        data,
+        {
+          headers: isFormData
+            ? {
+                'Content-Type':
+                  'multipart/form-data',
+              }
+            : {},
+        }
+      );
+
     return response.data;
   }
 
-  async updateEmployee(id: string | number, data: FormData | ApiData) {
-    const isFormData = data instanceof FormData;
-    const response = await this.client.put(`/api/admin/employees/${id}`, data, {
-      headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : {},
-    });
+  async updateEmployee(
+    id: string | number,
+    data: FormData | ApiData
+  ) {
+    const isFormData =
+      data instanceof FormData;
+
+    const response =
+      await this.client.put(
+        `/api/admin/employees/${id}`,
+        data,
+        {
+          headers: isFormData
+            ? {
+                'Content-Type':
+                  'multipart/form-data',
+              }
+            : {},
+        }
+      );
+
     return response.data;
   }
 
-  async deleteEmployee(id: string | number) {
-    const response = await this.client.delete(`/api/admin/employees/${id}`);
+  async deleteEmployee(
+    id: string | number
+  ) {
+    const response =
+      await this.client.delete(
+        `/api/admin/employees/${id}`
+      );
+
     return response.data;
   }
 
-  async updateEmployeeRole(id: string | number, data: ApiData) {
-    const response = await this.client.patch(`/api/admin/employees/${id}/role`, data);
+  async updateEmployeeRole(
+    id: string | number,
+    data: ApiData
+  ) {
+    const response =
+      await this.client.patch(
+        `/api/admin/employees/${id}/role`,
+        data
+      );
+
     return response.data;
   }
 
-  async resetEmployeePassword(id: string | number, newPassword: string) {
-    const response = await this.client.post(
-      `/api/admin/employees/${id}/reset-password`,
-      { new_password: newPassword }
-    );
+  async resetEmployeePassword(
+    id: string | number,
+    newPassword: string
+  ) {
+    const response =
+      await this.client.post(
+        `/api/admin/employees/${id}/reset-password`,
+        {
+          new_password: newPassword,
+        }
+      );
+
     return response.data;
   }
 }
 
-export const api = new ApiClient();
+export const api =
+  new ApiClient();
+
 export default api;

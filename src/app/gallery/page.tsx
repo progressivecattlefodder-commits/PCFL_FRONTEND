@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -24,8 +25,11 @@ import {
 
 import toast from 'react-hot-toast';
 
-import { api, ApiResponse } from '@/lib/api';
-import { GalleryItem } from '@/types';
+import { api } from '@/lib/api';
+import type {
+  ApiResponse,
+  GalleryItem,
+} from '@/types';
 
 import Modal from '@/components/ui/Modal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
@@ -52,30 +56,18 @@ const emptyForm: GalleryForm = {
 export default function AdminGalleryPage() {
   const [items, setItems] = useState<GalleryItem[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [search, setSearch] = useState('');
-
   const [modalOpen, setModalOpen] = useState(false);
-
-  const [editingId, setEditingId] =
-    useState<string | null>(null);
-
-  const [deleteId, setDeleteId] =
-    useState<string | null>(null);
-
-  const [form, setForm] =
-    useState<GalleryForm>(emptyForm);
-
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [form, setForm] = useState<GalleryForm>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageError, setImageError] = useState<Record<string, boolean>>(
+    {}
+  );
 
-  const [uploadingImage, setUploadingImage] =
-    useState(false);
-
-  const [imageError, setImageError] =
-    useState<Record<string, boolean>>({});
-
-  const fileInputRef =
-    useRef<HTMLInputElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // ============================================================
   // FETCH GALLERY
@@ -85,33 +77,22 @@ export default function AdminGalleryPage() {
     setLoading(true);
 
     try {
-      const response = await api.getAdminGallery();
+      const response: ApiResponse<GalleryItem[]> =
+        await api.getAdminGallery();
 
-      if (
-        response?.success &&
-        Array.isArray(response.data)
-      ) {
+      if (response.success && Array.isArray(response.data)) {
         setItems(response.data);
-      } else if (Array.isArray(response)) {
-        /**
-         * Compatibility with a backend that returns
-         * the array directly.
-         */
-        setItems(
-          response as unknown as GalleryItem[]
-        );
       } else {
         setItems([]);
+        toast.error(
+          response.message || 'Failed to load gallery items'
+        );
       }
     } catch (error) {
-      console.error(
-        'Failed to load gallery items:',
-        error
-      );
+      console.error('Failed to load gallery items:', error);
 
-      toast.error(
-        'Failed to load gallery items'
-      );
+      toast.error('Failed to load gallery items');
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -126,7 +107,10 @@ export default function AdminGalleryPage() {
   // ============================================================
 
   const openCreate = () => {
-    setForm({ ...emptyForm });
+    setForm({
+      ...emptyForm,
+    });
+
     setEditingId(null);
     setModalOpen(true);
   };
@@ -185,10 +169,7 @@ export default function AdminGalleryPage() {
         );
       }
     } catch (error) {
-      console.error(
-        'Image upload failed:',
-        error
-      );
+      console.error('Image upload failed:', error);
 
       toast.error('Failed to upload image');
     } finally {
@@ -219,23 +200,29 @@ export default function AdminGalleryPage() {
     setSaving(true);
 
     try {
+      const payload: Partial<GalleryItem> = {
+        title: form.title.trim(),
+        description: form.description.trim(),
+        image_url: form.image_url.trim(),
+        category: form.category,
+        sort_order: form.sort_order,
+        is_published: form.is_published,
+      };
+
       let response: ApiResponse<GalleryItem>;
 
       if (editingId) {
-        response =
-          await api.updateGalleryItem(
-            editingId,
-            form
-          );
+        response = await api.updateGalleryItem(
+          editingId,
+          payload
+        );
       } else {
-        response =
-          await api.createGalleryItem(form);
+        response = await api.createGalleryItem(
+          payload
+        );
       }
 
-      if (
-        response?.success ||
-        response?.data
-      ) {
+      if (response.success) {
         toast.success(
           editingId
             ? 'Gallery item updated'
@@ -243,15 +230,15 @@ export default function AdminGalleryPage() {
         );
 
         setModalOpen(false);
-
-        setForm({ ...emptyForm });
-
+        setForm({
+          ...emptyForm,
+        });
         setEditingId(null);
 
         await fetchItems();
       } else {
         toast.error(
-          response?.message ||
+          response.message ||
             'Failed to save gallery item'
         );
       }
@@ -279,15 +266,23 @@ export default function AdminGalleryPage() {
     }
 
     try {
-      await api.deleteGalleryItem(deleteId);
+      const response =
+        await api.deleteGalleryItem(deleteId);
 
-      toast.success(
-        'Gallery item deleted'
-      );
+      if (response.success) {
+        toast.success(
+          'Gallery item deleted'
+        );
 
-      setDeleteId(null);
+        setDeleteId(null);
 
-      await fetchItems();
+        await fetchItems();
+      } else {
+        toast.error(
+          response.message ||
+            'Failed to delete item'
+        );
+      }
     } catch (error) {
       console.error(
         'Failed to delete gallery item:',
@@ -308,21 +303,29 @@ export default function AdminGalleryPage() {
     item: GalleryItem
   ) => {
     try {
-      await api.updateGalleryItem(
-        item.id,
-        {
-          is_published:
-            !item.is_published,
-        }
-      );
+      const response =
+        await api.updateGalleryItem(
+          item.id,
+          {
+            is_published:
+              !item.is_published,
+          }
+        );
 
-      toast.success(
-        item.is_published
-          ? 'Unpublished'
-          : 'Published'
-      );
+      if (response.success) {
+        toast.success(
+          item.is_published
+            ? 'Unpublished'
+            : 'Published'
+        );
 
-      await fetchItems();
+        await fetchItems();
+      } else {
+        toast.error(
+          response.message ||
+            'Failed to update status'
+        );
+      }
     } catch (error) {
       console.error(
         'Failed to update status:',
@@ -358,7 +361,6 @@ export default function AdminGalleryPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-
       {/* HEADER */}
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -416,17 +418,14 @@ export default function AdminGalleryPage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-
           {filtered.map((item) => (
             <div
               key={item.id}
               className="group relative rounded-xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all bg-white flex flex-col justify-between"
             >
-
               {/* IMAGE */}
 
               <div className="relative aspect-square bg-gray-100">
-
                 {item.image_url &&
                 !imageError[item.id] ? (
                   <Image
@@ -450,17 +449,21 @@ export default function AdminGalleryPage() {
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 text-xs gap-1">
                     <ImageOff className="w-6 h-6" />
-                    <span>No Image</span>
+
+                    <span>
+                      No Image
+                    </span>
                   </div>
                 )}
 
                 {/* ACTIONS */}
 
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-
                   <button
                     onClick={() =>
-                      handleTogglePublish(item)
+                      handleTogglePublish(
+                        item
+                      )
                     }
                     className="p-2 bg-white rounded-lg hover:bg-amber-50 text-amber-600 transition-colors"
                     title={
@@ -495,21 +498,18 @@ export default function AdminGalleryPage() {
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
-
                 </div>
               </div>
 
               {/* INFO */}
 
               <div className="p-3 bg-white border-t border-gray-100">
-
                 <p className="text-sm font-medium text-gray-900 truncate">
                   {item.title ||
                     'Untitled'}
                 </p>
 
                 <div className="flex items-center justify-between mt-1.5">
-
                   <span className="text-xs text-gray-400">
                     {item.category ||
                       'Uncategorized'}
@@ -526,19 +526,14 @@ export default function AdminGalleryPage() {
                       ? 'Live'
                       : 'Hidden'}
                   </Badge>
-
                 </div>
               </div>
-
             </div>
           ))}
-
         </div>
       )}
 
-      {/* ======================================================
-          CREATE / EDIT MODAL
-      ====================================================== */}
+      {/* CREATE / EDIT MODAL */}
 
       <Modal
         open={modalOpen}
@@ -552,9 +547,7 @@ export default function AdminGalleryPage() {
         }
         size="md"
       >
-
         <div className="space-y-4">
-
           {/* TITLE */}
 
           <div>
@@ -566,11 +559,14 @@ export default function AdminGalleryPage() {
               className="form-input w-full"
               value={form.title}
               onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  title:
-                    event.target.value,
-                }))
+                setForm(
+                  (current) => ({
+                    ...current,
+                    title:
+                      event.target
+                        .value,
+                  })
+                )
               }
               placeholder="e.g. Corn Silage Process"
             />
@@ -584,22 +580,25 @@ export default function AdminGalleryPage() {
             </label>
 
             <div className="flex items-center gap-3">
-
               <input
                 className="form-input flex-1"
-                value={form.image_url}
+                value={
+                  form.image_url
+                }
                 onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    image_url:
-                      event.target.value,
-                  }))
+                  setForm(
+                    (current) => ({
+                      ...current,
+                      image_url:
+                        event.target
+                          .value,
+                    })
+                  )
                 }
                 placeholder="https://... or upload a file"
               />
 
               <label className="btn-secondary flex items-center gap-2 cursor-pointer py-2 px-3 text-sm shrink-0 border rounded-lg hover:bg-gray-50">
-
                 {uploadingImage ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
@@ -609,7 +608,9 @@ export default function AdminGalleryPage() {
                 Upload
 
                 <input
-                  ref={fileInputRef}
+                  ref={
+                    fileInputRef
+                  }
                   type="file"
                   accept="image/*"
                   onChange={
@@ -617,7 +618,6 @@ export default function AdminGalleryPage() {
                   }
                   className="hidden"
                 />
-
               </label>
             </div>
           </div>
@@ -645,13 +645,18 @@ export default function AdminGalleryPage() {
 
             <textarea
               className="form-input w-full h-20 resize-none"
-              value={form.description}
+              value={
+                form.description
+              }
               onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  description:
-                    event.target.value,
-                }))
+                setForm(
+                  (current) => ({
+                    ...current,
+                    description:
+                      event.target
+                        .value,
+                  })
+                )
               }
               placeholder="Optional description…"
             />
@@ -660,7 +665,6 @@ export default function AdminGalleryPage() {
           {/* CATEGORY + SORT */}
 
           <div className="grid grid-cols-2 gap-4">
-
             <div>
               <label className="form-label block text-sm font-medium mb-1">
                 Category
@@ -668,13 +672,18 @@ export default function AdminGalleryPage() {
 
               <select
                 className="form-input w-full"
-                value={form.category}
+                value={
+                  form.category
+                }
                 onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    category:
-                      event.target.value,
-                  }))
+                  setForm(
+                    (current) => ({
+                      ...current,
+                      category:
+                        event.target
+                          .value,
+                    })
+                  )
                 }
               >
                 <option value="Production">
@@ -703,41 +712,51 @@ export default function AdminGalleryPage() {
               <input
                 type="number"
                 className="form-input w-full"
-                value={form.sort_order}
+                value={
+                  form.sort_order
+                }
                 onChange={(event) => {
                   const value =
                     parseInt(
-                      event.target.value,
+                      event.target
+                        .value,
                       10
                     );
 
-                  setForm((current) => ({
-                    ...current,
-                    sort_order:
-                      Number.isNaN(value)
-                        ? 0
-                        : value,
-                  }));
+                  setForm(
+                    (current) => ({
+                      ...current,
+                      sort_order:
+                        Number.isNaN(
+                          value
+                        )
+                          ? 0
+                          : value,
+                    })
+                  );
                 }}
               />
             </div>
-
           </div>
 
           {/* PUBLISH */}
 
           <div className="flex items-center gap-3 pt-1">
-
             <input
               type="checkbox"
               id="gallery_published"
-              checked={form.is_published}
+              checked={
+                form.is_published
+              }
               onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  is_published:
-                    event.target.checked,
-                }))
+                setForm(
+                  (current) => ({
+                    ...current,
+                    is_published:
+                      event.target
+                        .checked,
+                  })
+                )
               }
               className="w-4 h-4 rounded text-emerald-600 border-gray-300 focus:ring-emerald-500"
             />
@@ -748,13 +767,11 @@ export default function AdminGalleryPage() {
             >
               Publish immediately
             </label>
-
           </div>
 
           {/* BUTTONS */}
 
           <div className="flex justify-end gap-3 pt-2">
-
             <button
               onClick={() =>
                 setModalOpen(false)
@@ -778,11 +795,8 @@ export default function AdminGalleryPage() {
                   ? 'Save Changes'
                   : 'Add Image'}
             </button>
-
           </div>
-
         </div>
-
       </Modal>
 
       {/* DELETE CONFIRMATION */}
@@ -798,7 +812,6 @@ export default function AdminGalleryPage() {
           setDeleteId(null)
         }
       />
-
     </div>
   );
 }
