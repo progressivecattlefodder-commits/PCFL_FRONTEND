@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Phone, ArrowRight, Leaf, Award, Users, CheckCircle } from 'lucide-react';
@@ -8,13 +8,6 @@ import PublicLayout from '@/components/layout/PublicLayout';
 import { api } from '@/lib/api';
 import { HeroSection, Product, ContentBlock } from '@/types';
 import IMAGE from '@/lib/assets';
-
-declare global {
-  interface Window {
-    onYouTubeIframeAPIReady?: () => void;
-    YT: any;
-  }
-}
 
 const fallbackHero: HeroSection = {
   id: '',
@@ -31,13 +24,9 @@ const fallbackHero: HeroSection = {
   updated_at: '',
 };
 
-const VIDEO_URL = 'https://youtu.be/22X1PbQf9J4';
-
-function getYouTubeId(url: string) {
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  return match && match[2].length === 11 ? match[2] : '22X1PbQf9J4';
-}
+// Video paths inside the public folder (/public/videos/)
+const DESKTOP_VIDEO_SRC = '/videos/desktop.mp4';
+const MOBILE_VIDEO_SRC = '/videos/mobile.mp4';
 
 const getProductImage = (product: Product, index: number) => {
   if (product.image_url) return product.image_url;
@@ -55,60 +44,28 @@ const getProductImage = (product: Product, index: number) => {
   return IMAGE.product[imageKey as 1 | 2] || IMAGE.product[1];
 };
 
-function HeroBackgroundVideo({ videoUrl }: { videoUrl: string }) {
-  const videoId = getYouTubeId(videoUrl);
-  const playerRef = useRef<any>(null);
-  const [isApiReady, setIsApiReady] = useState(false);
-
-  useEffect(() => {
-    if (window.YT && window.YT.Player) {
-      setIsApiReady(true);
-      return;
-    }
-
-    const tag = document.createElement('script');
-    tag.src = 'https://www.youtube.com/iframe_api';
-    const firstScriptTag = document.getElementsByTagName('script')[0];
-    firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
-
-    window.onYouTubeIframeAPIReady = () => {
-      setIsApiReady(true);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isApiReady) return;
-
-    playerRef.current = new window.YT.Player(`yt-bg-player-${videoId}`, {
-      videoId: videoId,
-      playerVars: {
-        autoplay: 1,
-        mute: 1,
-        controls: 1,
-        modestbranding: 1,
-        rel: 0,
-        showinfo: 0,
-        playsinline: 1,
-        loop: 1,
-        playlist: videoId,
-      },
-      events: {
-        onReady: (event: any) => {
-          event.target.playVideo();
-        },
-      },
-    });
-
-    return () => {
-      if (playerRef.current && playerRef.current.destroy) {
-        playerRef.current.destroy();
-      }
-    };
-  }, [isApiReady, videoId]);
-
+function HeroBackgroundVideo() {
   return (
-    <div className="absolute inset-0 w-full h-full overflow-hidden">
-      <div id={`yt-bg-player-${videoId}`} className="w-full h-full object-cover scale-125" />
+    <div className="absolute inset-0 w-full h-full overflow-hidden bg-pcfi-green-900">
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        aria-hidden="true"
+        className="w-full h-full object-cover bg-pcfi-green-900 scale-105"
+      >
+        {/* Large screens: Desktops, Laptops, Tablets (>=768px) */}
+        <source src={DESKTOP_VIDEO_SRC} media="(min-width: 768px)" type="video/mp4" />
+
+        {/* Small screens: Mobile Phones (<768px) */}
+        <source src={MOBILE_VIDEO_SRC} type="video/mp4" />
+
+        Your browser does not support HTML video.
+      </video>
+
+      {/* Dark tint layer to help with overall contrast */}
+      <div className="absolute inset-0 bg-black/40 pointer-events-none" />
     </div>
   );
 }
@@ -147,21 +104,22 @@ export default function HomePage() {
 
   return (
     <PublicLayout>
-      {/* Full-Screen Hero Section with Undimmed Background Video */}
+      {/* Full-Screen Hero Section with Video Background */}
       <section className="relative min-h-[90vh] flex items-center bg-pcfi-green-900 overflow-hidden py-16 lg:py-24">
-        {/* Full Hero Background Video */}
-        <HeroBackgroundVideo videoUrl={VIDEO_URL} />
+        {/* Responsive Video Background */}
+        <HeroBackgroundVideo />
 
+        {/* Content Overlay with Text Inversion (mix-blend-difference) */}
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full pointer-events-none">
-          <div className="max-w-3xl pointer-events-auto">
-            <div className="inline-flex items-center gap-2 bg-pcfi-gold-500/30 border border-pcfi-gold-400/50 rounded-full px-4 py-1.5 mb-6 backdrop-blur-md">
-              <Leaf className="w-3.5 h-3.5 text-pcfi-gold-400" />
-              <span className="text-pcfi-gold-300 text-xs font-medium">Healthy Cow, Happy Farmer!</span>
+          <div className="max-w-3xl pointer-events-auto mix-blend-difference text-white">
+            <div className="inline-flex items-center gap-2 bg-white/20 border border-white/40 rounded-full px-4 py-1.5 mb-6 backdrop-blur-md">
+              <Leaf className="w-3.5 h-3.5 text-white" />
+              <span className="text-white text-xs font-medium">Healthy Cow, Happy Farmer!</span>
             </div>
-            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight drop-shadow-lg">
+            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
               {hero.heading}
             </h1>
-            <p className="text-white text-lg md:text-xl mb-8 leading-relaxed max-w-2xl drop-shadow-md">
+            <p className="text-white text-lg md:text-xl mb-8 leading-relaxed max-w-2xl font-medium">
               {hero.description}
             </p>
             <div className="flex flex-wrap gap-4">
@@ -184,7 +142,7 @@ export default function HomePage() {
             { val: '100%', label: 'Natural Feed' },
             { val: '500+', label: 'Happy Farmers' },
           ].map((stat) => (
-            <div key={stat.label} className="bg-black/50 backdrop-blur-md rounded-xl px-5 py-3 text-center border border-white/20">
+            <div key={stat.label} className="bg-pcfi-green-900/60 backdrop-blur-md rounded-xl px-5 py-3 text-center border border-white/20">
               <p className="text-pcfi-gold-300 text-xl font-bold font-display">{stat.val}</p>
               <p className="text-white text-[10px] mt-0.5">{stat.label}</p>
             </div>
@@ -351,7 +309,9 @@ export default function HomePage() {
               </div>
               <h3 className="font-display text-xl font-bold text-pcfi-gold-300 mb-3">Our Mission</h3>
               <p className="text-pcfi-green-100 leading-relaxed text-sm">
-                To provide farmers with innovative, reliable, and sustainable silage solutions that enhance livestock health, increase productivity, and secure a brighter agricultural future.
+                To produce and deliver high-quality, scientifically formulated and sustainable silage and livestock 
+                feed that enhance animal health, productivity and farm profitability while establishing Nepal as a 
+                trusted source of premium livestock nutrition products in domestic and international markets.
               </p>
             </div>
             <div className="bg-pcfi-green-700/50 border border-pcfi-green-600 rounded-2xl p-8">
@@ -360,8 +320,9 @@ export default function HomePage() {
               </div>
               <h3 className="font-display text-xl font-bold text-pcfi-gold-300 mb-3">Our Vision</h3>
               <p className="text-pcfi-green-100 leading-relaxed text-sm">
-                To be recognized as Nepal’s most trusted provider of cattle feed solutions — setting new standards for quality, sustainability, and customer satisfaction across the agricultural sector.
-              </p>
+                To become a leading and trusted livestock nutrition company from Nepal by transforming dairy
+                and livestock farming through superior nutrition, innovation, quality, sustainability and access to
+                international markets.</p>
             </div>
           </div>
         </div>

@@ -429,7 +429,7 @@ export default function AboutPage() {
               </h3>
               <p className="text-pcfi-green-100 leading-relaxed text-sm">
                 {blocks.mission?.content ||
-                  'To provide farmers with innovative, reliable, and sustainable silage solutions that enhance livestock health, increase productivity, and secure a brighter agricultural future.'}
+                  'To produce and deliver high-quality, scientifically formulated and sustainable silage and livestock feed that enhance animal health, productivity and farm profitability while establishing Nepal as atrusted source of premium livestock nutrition products in domestic and international markets.'}
               </p>
             </motion.div>
             <motion.div variants={fadeInUp} className="bg-pcfi-green-800 text-white rounded-2xl p-8 shadow-lg">
@@ -441,7 +441,7 @@ export default function AboutPage() {
               </h3>
               <p className="text-pcfi-green-100 leading-relaxed text-sm">
                 {blocks.vision?.content ||
-                  "To be recognized as Nepal’s most trusted provider of cattle feed solutions — setting new standards for quality, sustainability, and customer satisfaction across the agricultural sector."}
+                  "To become a leading and trusted livestock nutrition company from Nepal by transforming dairy and livestock farming through superior nutrition, innovation, quality, sustainability and access to international markets."}
               </p>
             </motion.div>
           </div>

@@ -11,15 +11,18 @@ import {
 import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/lib/auth-context';
+import { QrCode as QrIcon } from 'lucide-react';
 
 const navItems = [
   { label: 'Dashboard',     href: '/admin/dashboard',     icon: LayoutDashboard },
   { label: 'Products',      href: '/admin/products',      icon: Package },
+  { label: 'Dynamic QR',    href: '/admin/qr-code',       icon: QrIcon },
   { label: 'Gallery',       href: '/admin/gallery',       icon: Image },
   { label: 'Content',       href: '/admin/content',       icon: FileText },
   { label: 'Board Members', href: '/admin/board-members', icon: Users },
   { label: 'Employees',     href: '/admin/employees',     icon: Users },
   { label: 'Settings',      href: '/admin/settings',      icon: Settings },
+  
 ];
 
 const roleColors: Record<string, string> = {
