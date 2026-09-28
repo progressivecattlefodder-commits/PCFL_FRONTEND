@@ -71,9 +71,14 @@ const FALLBACK_BOARD_MEMBERS: BoardMember[] = [
     full_name: 'Dhiraj Koirala',
     title: 'Director',
     image_url: '/images/Personalities/Per_3.jpeg',
-    bio: 'Dhiraj Koirala is an international development professional with over 15 years of experience with the United Nations, the International Organization for Migration, and government institutions across Nepal, the United States, Qatar, and Central Africa. He holds a master\'s degree in political science and a certificate in peace and conflict management.',
+    bio: "Dhiraj Koirala is an international development professional with over 15 years of experience with the United Nations, the International Organization for Migration, and government institutions across Nepal, the United States, Qatar, and Central Africa. He holds a master's degree in political science and a certificate in peace and conflict management.",
   },
 ];
+
+// Employee server-data switch
+// true  = fetch employees from the server
+// false = use FALLBACK_EMPLOYEES only
+const USE_SERVER_EMPLOYEES = false;
 
 // Fallback Employees Data
 const FALLBACK_EMPLOYEES: EmployeeUser[] = [
@@ -105,24 +110,41 @@ const FALLBACK_EMPLOYEES: EmployeeUser[] = [
     title: 'Plant Assistant',
     avatar_url: '/images/Personalities/emp_4.webp',
   },
+  {
+    id: 5,
+    status: 'Er.',
+    full_name: 'Ladali Gupta ',
+    title: 'International Business Executive',
+    avatar_url: '/images/Personalities/emp_5.png',
+  },
 ];
 
 // Helper to resolve absolute image URLs
 const resolveImageUrl = (url?: string) => {
   if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
-  if (url.startsWith('/images/')) return url; // Static asset paths
+
+  if (
+    url.startsWith('http://') ||
+    url.startsWith('https://') ||
+    url.startsWith('data:')
+  ) {
+    return url;
+  }
+
+  if (url.startsWith('/images/')) return url;
+
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+
   return `${baseUrl.replace(/\/$/, '')}/${url.replace(/^\//, '')}`;
 };
 
 // Animation Configurations
 const fadeInUp = {
   hidden: { opacity: 0, y: 30 },
-  visible: { 
-    opacity: 1, 
-    y: 0, 
-    transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } 
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] },
   },
 };
 
@@ -151,7 +173,7 @@ function BoardMemberCard({ member }: { member: BoardMember }) {
   const showFullBio = isExpanded || isHovered;
 
   return (
-    <motion.div 
+    <motion.div
       variants={fadeInUp}
       whileHover={{ y: -6 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
@@ -184,6 +206,7 @@ function BoardMemberCard({ member }: { member: BoardMember }) {
           {statusPrefix && <span className="font-medium">{statusPrefix}</span>}
           {member.full_name}
         </h3>
+
         <p className="text-xs font-semibold uppercase tracking-wider text-pcfi-gold-600 mt-1">
           {member.title}
         </p>
@@ -192,13 +215,14 @@ function BoardMemberCard({ member }: { member: BoardMember }) {
       {/* Bio Paragraph */}
       {member.bio && (
         <div className="w-full pt-4 border-t border-gray-100 text-left">
-          <p 
+          <p
             className={`text-gray-600 text-sm leading-relaxed transition-all duration-300 ${
               showFullBio ? '' : 'line-clamp-4'
             }`}
           >
             {member.bio}
           </p>
+
           {member.bio.length > 140 && (
             <button
               type="button"
@@ -209,7 +233,9 @@ function BoardMemberCard({ member }: { member: BoardMember }) {
               className="mt-3 text-xs font-semibold text-pcfi-green-700 hover:text-pcfi-green-900 inline-flex items-center gap-1 focus:outline-none"
             >
               <span>{showFullBio ? 'Read Less' : 'Read Full Bio'}</span>
-              <span className="text-base leading-none">{showFullBio ? '↑' : '→'}</span>
+              <span className="text-base leading-none">
+                {showFullBio ? '↑' : '→'}
+              </span>
             </button>
           )}
         </div>
@@ -222,6 +248,7 @@ function EmployeeCard({ employee }: { employee: EmployeeUser }) {
   const resolvedUrl = resolveImageUrl(employee.avatar_url);
   const [avatarSrc, setAvatarSrc] = useState<string>(resolvedUrl);
   const [hasError, setHasError] = useState(false);
+
   const statusPrefix = employee.status ? `${employee.status.trim()} ` : '';
 
   useEffect(() => {
@@ -230,7 +257,7 @@ function EmployeeCard({ employee }: { employee: EmployeeUser }) {
   }, [employee.avatar_url]);
 
   return (
-    <motion.div 
+    <motion.div
       variants={fadeInUp}
       whileHover={{ y: -4, scale: 1.02 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
@@ -253,14 +280,22 @@ function EmployeeCard({ employee }: { employee: EmployeeUser }) {
           </span>
         )}
       </div>
+
       <div className="overflow-hidden">
         <h4 className="font-display text-base font-bold text-gray-900 group-hover:text-pcfi-green-700 transition-colors truncate">
-          {statusPrefix && <span className="text-pcfi-green-600 font-normal mr-1">{statusPrefix}</span>}
+          {statusPrefix && (
+            <span className="text-pcfi-green-600 font-normal mr-1">
+              {statusPrefix}
+            </span>
+          )}
           {employee.full_name}
         </h4>
+
         <div className="flex items-center gap-1.5 text-xs text-pcfi-green-700 font-medium mt-1">
           <Briefcase className="w-3.5 h-3.5 shrink-0 text-pcfi-gold-600" />
-          <span className="font-bold text-md text-pcfi-gold-600 truncate">{employee.title}</span>
+          <span className="font-bold text-md text-pcfi-gold-600 truncate">
+            {employee.title}
+          </span>
         </div>
       </div>
     </motion.div>
@@ -277,16 +312,46 @@ export default function AboutPage() {
   useEffect(() => {
     const fetchAllData = async () => {
       setIsLoading(true);
-      try {
-        const fetchEmployeesFn = typeof api.getPublicEmployees === 'function'
-          ? api.getPublicEmployees()
-          : api.getEmployees();
 
-        const [aboutRes, contactRes, boardRes, employeeRes] = await Promise.all([
-          api.getAbout().catch((err) => { console.error('Error fetching About:', err); return null; }),
-          api.getContactInfo().catch((err) => { console.error('Error fetching Contact:', err); return null; }),
-          api.getBoardMembers().catch((err) => { console.error('Error fetching Board:', err); return null; }),
-          fetchEmployeesFn.catch((err) => { console.error('Error fetching Employees:', err); return null; }),
+      try {
+        /*
+         * Employee data:
+         * - USE_SERVER_EMPLOYEES = true  -> fetch from server
+         * - USE_SERVER_EMPLOYEES = false -> use fallback data only
+         */
+        const fetchEmployeesFn = USE_SERVER_EMPLOYEES
+          ? (
+              typeof api.getPublicEmployees === 'function'
+                ? api.getPublicEmployees()
+                : api.getEmployees()
+            )
+          : Promise.resolve(null);
+
+        const [
+          aboutRes,
+          contactRes,
+          boardRes,
+          employeeRes,
+        ] = await Promise.all([
+          api.getAbout().catch((err) => {
+            console.error('Error fetching About:', err);
+            return null;
+          }),
+
+          api.getContactInfo().catch((err) => {
+            console.error('Error fetching Contact:', err);
+            return null;
+          }),
+
+          api.getBoardMembers().catch((err) => {
+            console.error('Error fetching Board:', err);
+            return null;
+          }),
+
+          fetchEmployeesFn.catch((err) => {
+            console.error('Error fetching Employees:', err);
+            return null;
+          }),
         ]);
 
         const extractData = (res: any) => {
@@ -297,29 +362,61 @@ export default function AboutPage() {
           return [];
         };
 
+        // About data
         const aboutData = extractData(aboutRes);
+
         if (aboutData.length > 0) {
           const map: Record<string, ContentBlock> = {};
-          aboutData.forEach((b: ContentBlock) => { map[b.key] = b; });
+
+          aboutData.forEach((b: ContentBlock) => {
+            map[b.key] = b;
+          });
+
           setBlocks(map);
         }
 
+        // Contact data
         if (contactRes?.data?.metadata) {
           setContact(contactRes.data.metadata as ContactInfo);
         } else if (contactRes?.metadata) {
           setContact(contactRes.metadata as ContactInfo);
         }
 
+        // Board data
         const boardData = extractData(boardRes);
-        setBoardMembers(boardData.length > 0 ? boardData : FALLBACK_BOARD_MEMBERS);
 
-        const empData = extractData(employeeRes);
-        setEmployees(empData.length > 0 ? empData : FALLBACK_EMPLOYEES);
+        setBoardMembers(
+          boardData.length > 0
+            ? boardData
+            : FALLBACK_BOARD_MEMBERS
+        );
+
+        /*
+         * Employee data
+         *
+         * If server fetching is disabled, the API response is completely
+         * ignored and FALLBACK_EMPLOYEES is always used.
+         */
+        if (USE_SERVER_EMPLOYEES) {
+          const empData = extractData(employeeRes);
+
+          setEmployees(
+            empData.length > 0
+              ? empData
+              : FALLBACK_EMPLOYEES
+          );
+        } else {
+          setEmployees(FALLBACK_EMPLOYEES);
+        }
 
       } catch (error) {
         console.error('Unhandled error in AboutPage fetch:', error);
+
         setBoardMembers(FALLBACK_BOARD_MEMBERS);
+
+        // Always use fallback employees when server fetching is disabled.
         setEmployees(FALLBACK_EMPLOYEES);
+
       } finally {
         setIsLoading(false);
       }
@@ -330,6 +427,7 @@ export default function AboutPage() {
 
   return (
     <PublicLayout>
+
       {/* Header Banner */}
       <section className="relative bg-pcfi-green-800 py-16 text-center overflow-hidden">
         <motion.div
@@ -338,26 +436,39 @@ export default function AboutPage() {
           variants={staggerContainer}
           className="max-w-4xl mx-auto px-4"
         >
-          <motion.p variants={fadeInUp} className="text-pcfi-gold-400 font-semibold text-sm uppercase tracking-widest mb-2">
+          <motion.p
+            variants={fadeInUp}
+            className="text-pcfi-gold-400 font-semibold text-sm uppercase tracking-widest mb-2"
+          >
             Get to Know Us
           </motion.p>
-          <motion.h1 variants={fadeInUp} className="font-display text-3xl md:text-5xl font-bold text-white">
+
+          <motion.h1
+            variants={fadeInUp}
+            className="font-display text-3xl md:text-5xl font-bold text-white"
+          >
             About Us
           </motion.h1>
         </motion.div>
       </section>
 
       {/* Company Intro Section */}
-      <motion.section 
+      <motion.section
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, margin: "-100px" }}
+        viewport={{ once: true, margin: '-100px' }}
         variants={fadeInUp}
         className="py-16 bg-white"
       >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="section-subheading">Who We Are</p>
-          <h2 className="section-heading">{blocks.about_company?.title || 'About PCFL'}</h2>
+          <p className="section-subheading">
+            Who We Are
+          </p>
+
+          <h2 className="section-heading">
+            {blocks.about_company?.title || 'About PCFL'}
+          </h2>
+
           <p className="text-gray-600 leading-relaxed text-lg">
             {isLoading
               ? 'Loading…'
@@ -368,19 +479,25 @@ export default function AboutPage() {
       </motion.section>
 
       {/* Chairman Message */}
-      <motion.section 
+      <motion.section
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, margin: "-100px" }}
+        viewport={{ once: true, margin: '-100px' }}
         variants={staggerContainer}
         className="py-16 bg-pcfi-green-50"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <motion.div variants={fadeInUp} className="flex justify-center lg:order-2">
+
+            <motion.div
+              variants={fadeInUp}
+              className="flex justify-center lg:order-2"
+            >
               <div className="relative">
                 <div className="w-52 h-64 bg-pcfi-green-200 rounded-2xl" />
+
                 <div className="absolute -top-4 -left-4 w-52 h-64 rounded-2xl" />
+
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-48 h-60 rounded-2xl overflow-hidden shadow-xl">
                     <Image
@@ -394,56 +511,87 @@ export default function AboutPage() {
                 </div>
               </div>
             </motion.div>
-            <motion.div variants={fadeInUp} className="lg:order-1">
-              <p className="section-subheading">Leadership</p>
-              <h2 className="section-heading">Message from our Chairman</h2>
+
+            <motion.div
+              variants={fadeInUp}
+              className="lg:order-1"
+            >
+              <p className="section-subheading">
+                Leadership
+              </p>
+
+              <h2 className="section-heading">
+                Message from our Chairman
+              </h2>
+
               <blockquote className="text-gray-700 text-lg leading-relaxed italic border-l-4 border-pcfi-gold-500 pl-6">
                 {blocks.chairman_message?.content ||
                   '"At PCFL, we are driven by a mission to empower farmers with sustainable, high-quality fodder solutions."'}
               </blockquote>
             </motion.div>
+
           </div>
         </div>
       </motion.section>
 
       {/* Mission & Vision */}
-      <motion.section 
+      <motion.section
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, margin: "-100px" }}
+        viewport={{ once: true, margin: '-100px' }}
         variants={staggerContainer}
         className="py-16 bg-white"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
           <div className="text-center mb-12">
-            <p className="section-subheading">Our Purpose</p>
-            <h2 className="section-heading">Mission & Vision</h2>
+            <p className="section-subheading">
+              Our Purpose
+            </p>
+
+            <h2 className="section-heading">
+              Mission & Vision
+            </h2>
           </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            <motion.div variants={fadeInUp} className="bg-pcfi-green-800 text-white rounded-2xl p-8 shadow-lg">
+
+            <motion.div
+              variants={fadeInUp}
+              className="bg-pcfi-green-800 text-white rounded-2xl p-8 shadow-lg"
+            >
               <div className="w-12 h-12 bg-pcfi-gold-500 rounded-xl flex items-center justify-center mb-4">
                 <Target className="w-6 h-6 text-white" />
               </div>
+
               <h3 className="font-display text-xl font-bold text-pcfi-gold-300 mb-3">
                 {blocks.mission?.title || 'Our Mission'}
               </h3>
+
               <p className="text-pcfi-green-100 leading-relaxed text-sm">
                 {blocks.mission?.content ||
                   'To produce and deliver high-quality, scientifically formulated and sustainable silage and livestock feed that enhance animal health, productivity and farm profitability while establishing Nepal as atrusted source of premium livestock nutrition products in domestic and international markets.'}
               </p>
             </motion.div>
-            <motion.div variants={fadeInUp} className="bg-pcfi-green-800 text-white rounded-2xl p-8 shadow-lg">
+
+            <motion.div
+              variants={fadeInUp}
+              className="bg-pcfi-green-800 text-white rounded-2xl p-8 shadow-lg"
+            >
               <div className="w-12 h-12 bg-pcfi-gold-500 rounded-xl flex items-center justify-center mb-4">
                 <EyeIcon className="w-6 h-6 text-white" />
               </div>
+
               <h3 className="font-display text-xl font-bold text-pcfi-gold-300 mb-3">
                 {blocks.vision?.title || 'Our Vision'}
               </h3>
+
               <p className="text-pcfi-green-100 leading-relaxed text-sm">
                 {blocks.vision?.content ||
-                  "To become a leading and trusted livestock nutrition company from Nepal by transforming dairy and livestock farming through superior nutrition, innovation, quality, sustainability and access to international markets."}
+                  'To become a leading and trusted livestock nutrition company from Nepal by transforming dairy and livestock farming through superior nutrition, innovation, quality, sustainability and access to international markets.'}
               </p>
             </motion.div>
+
           </div>
         </div>
       </motion.section>
@@ -452,21 +600,32 @@ export default function AboutPage() {
       {boardMembers.length > 0 && (
         <section className="py-16 bg-gray-50 border-t border-gray-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
             <div className="text-center mb-12">
-              <p className="section-subheading">Governance & Strategy</p>
-              <h2 className="section-heading">Board of Directors</h2>
+              <p className="section-subheading">
+                Governance & Strategy
+              </p>
+
+              <h2 className="section-heading">
+                Board of Directors
+              </h2>
             </div>
-            <motion.div 
+
+            <motion.div
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true, margin: "-50px" }}
+              viewport={{ once: true, margin: '-50px' }}
               variants={staggerContainer}
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 items-start"
             >
               {boardMembers.map((member) => (
-                <BoardMemberCard key={member.id} member={member} />
+                <BoardMemberCard
+                  key={member.id}
+                  member={member}
+                />
               ))}
             </motion.div>
+
           </div>
         </section>
       )}
@@ -475,54 +634,92 @@ export default function AboutPage() {
       {employees.length > 0 && (
         <section className="py-16 bg-white border-t border-gray-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
             <div className="text-center mb-12">
-              <p className="section-subheading">Dedicated Team</p>
-              <h2 className="section-heading">Meet Our Team</h2>
+              <p className="section-subheading">
+                Dedicated Team
+              </p>
+
+              <h2 className="section-heading">
+                Meet Our Team
+              </h2>
             </div>
-            <motion.div 
+
+            <motion.div
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true, margin: "-50px" }}
+              viewport={{ once: true, margin: '-50px' }}
               variants={staggerContainer}
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto"
             >
               {employees.map((emp) => (
-                <EmployeeCard key={emp.id} employee={emp} />
+                <EmployeeCard
+                  key={emp.id}
+                  employee={emp}
+                />
               ))}
             </motion.div>
+
           </div>
         </section>
       )}
 
       {/* Contact Strip */}
       {contact && (
-        <motion.section 
+        <motion.section
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, margin: "-50px" }}
+          viewport={{ once: true, margin: '-50px' }}
           variants={fadeInUp}
           className="py-16 bg-gray-50 border-t border-gray-100"
         >
           <div className="max-w-4xl mx-auto px-4 text-center">
-            <h2 className="section-heading">Get in Touch</h2>
-            <p className="text-gray-500 mb-8">We'd love to hear from you.</p>
+
+            <h2 className="section-heading">
+              Get in Touch
+            </h2>
+
+            <p className="text-gray-500 mb-8">
+              We'd love to hear from you.
+            </p>
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <a href={`tel:${contact.phone}`} className="card p-6 hover:border-pcfi-green-300 flex flex-col items-center text-center transition-transform hover:-translate-y-1">
+
+              <a
+                href={`tel:${contact.phone}`}
+                className="card p-6 hover:border-pcfi-green-300 flex flex-col items-center text-center transition-transform hover:-translate-y-1"
+              >
                 <Phone className="w-6 h-6 text-pcfi-green-600 mb-2" />
-                <span className="text-sm text-gray-700">{contact.phone}</span>
+
+                <span className="text-sm text-gray-700">
+                  {contact.phone}
+                </span>
               </a>
-              <a href={`mailto:${contact.email}`} className="card p-6 hover:border-pcfi-green-300 flex flex-col items-center text-center transition-transform hover:-translate-y-1">
+
+              <a
+                href={`mailto:${contact.email}`}
+                className="card p-6 hover:border-pcfi-green-300 flex flex-col items-center text-center transition-transform hover:-translate-y-1"
+              >
                 <Mail className="w-6 h-6 text-pcfi-green-600 mb-2" />
-                <span className="text-sm text-gray-700">{contact.email}</span>
+
+                <span className="text-sm text-gray-700">
+                  {contact.email}
+                </span>
               </a>
+
               <div className="card p-6 flex flex-col items-center text-center transition-transform hover:-translate-y-1">
                 <MapPin className="w-6 h-6 text-pcfi-green-600 mb-2" />
-                <span className="text-sm text-gray-700">{contact.address}</span>
+
+                <span className="text-sm text-gray-700">
+                  {contact.address}
+                </span>
               </div>
+
             </div>
           </div>
         </motion.section>
       )}
+
     </PublicLayout>
   );
 }

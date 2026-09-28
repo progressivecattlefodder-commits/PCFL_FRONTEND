@@ -121,7 +121,7 @@ export default function QrAdminPage() {
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                 <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">Total Scans</span>
-                <p className="text-3xl font-black text-pcfi-green-800 mt-1">{data?.totalScans}</p>
+                <p className="text-3xl font-black text-pcfi-green-800 mt-1">{data?.total_scans}</p>
               </div>
               <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                 <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">Last Modified</span>
