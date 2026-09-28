@@ -88,8 +88,12 @@ export default function AdminGalleryPage() {
     setUploadingImage(true);
     try {
       const res = await api.uploadMedia(file);
-      if (res?.url) {
-        setForm((f) => ({ ...f, image_url: res.url }));
+      
+      // Safely check both wrapped ApiResponse (res.data.url) and flat response (res.url)
+      const imageUrl = res?.data?.url || (res as unknown as { url?: string })?.url;
+
+      if (imageUrl) {
+        setForm((f) => ({ ...f, image_url: imageUrl }));
         toast.success('Image uploaded');
       } else {
         toast.error('Invalid response from upload server');
