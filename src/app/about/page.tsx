@@ -97,6 +97,13 @@ const FALLBACK_EMPLOYEES: EmployeeUser[] = [
     avatar_url: '/images/Personalities/emp_2.webp',
   },
   {
+    id: 5,
+    status: 'Mr.',
+    full_name: 'Devendra Yadav',
+    title: 'Office Manager',
+    avatar_url: '/images/Personalities/emp_7.jpeg',
+  },
+  {
     id: 7,
     status: 'Mr.',
     full_name: 'Krishna Thapa',
@@ -118,7 +125,7 @@ const FALLBACK_EMPLOYEES: EmployeeUser[] = [
     avatar_url: '/images/Personalities/emp_5.png',
   },
   {
-    id: 5,
+    id: 6,
     status: 'Mr.',
     full_name: 'Diwash Acharya',
     title: 'IT Head',
