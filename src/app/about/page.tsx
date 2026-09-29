@@ -104,13 +104,6 @@ const FALLBACK_EMPLOYEES: EmployeeUser[] = [
     avatar_url: '/images/Personalities/emp_7.jpeg',
   },
   {
-    id: 7,
-    status: 'Mr.',
-    full_name: 'Krishna Thapa',
-    title: 'Technical Head',
-    avatar_url: '/images/Personalities/emp_3.webp',
-  },
-  {
     id: 3,
     status: 'Mr.',
     full_name: 'Gokarna Budhathoki',
