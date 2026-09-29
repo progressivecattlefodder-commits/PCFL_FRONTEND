@@ -99,7 +99,7 @@ const FALLBACK_EMPLOYEES: EmployeeUser[] = [
   {
     id: 5,
     status: 'Mr.',
-    full_name: 'Devendra Yadav',
+    full_name: 'Devendra Kr. Yadav',
     title: 'Office Manager',
     avatar_url: '/images/Personalities/emp_7.jpeg',
   },
