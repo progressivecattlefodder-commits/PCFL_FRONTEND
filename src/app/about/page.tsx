@@ -124,6 +124,21 @@ const FALLBACK_EMPLOYEES: EmployeeUser[] = [
     title: 'IT Head',
     avatar_url: '/images/Personalities/emp_6.png',
   },
+  {
+    id: 6,
+    status: 'Mrs.',
+    full_name: 'Amrita Bhattarai',
+    title: 'Accountant',
+    avatar_url: '/images/Personalities/emp_8.jpeg',
+  },
+  {
+    id: 6,
+    status: 'Mr.',
+    full_name: 'Harish Pant',
+    title: 'Veterinary Technician',
+    avatar_url: '/images/Personalities/emp_9.png',
+  },
+  
 ];
 
 // Helper to resolve absolute image URLs
