@@ -2,17 +2,16 @@
 const nextConfig = {
   output: 'standalone',
   images: {
+    unoptimized: true, // <-- This completely bypasses the Next.js image optimization proxy (fixing the 530 error)
     remotePatterns: [
-      // Allows all HTTPS external images (Unsplash, Cloudinary, S3, production backend)
       {
         protocol: 'https',
         hostname: '**',
       },
-      // Allows local backend development images over HTTP
       {
         protocol: 'http',
         hostname: 'localhost',
-        port: '8080', // Adjust port if your backend runs on a different port (e.g. 5000)
+        port: '8080',
         pathname: '/**',
       },
       {
@@ -27,7 +26,9 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:8080/api/:path*',
+        destination: process.env.NODE_ENV === 'production' 
+          ? 'https://backend.progressivecattlefodderindustries.com/api/:path*' 
+          : 'http://localhost:8080/api/:path*',
       },
     ];
   },
