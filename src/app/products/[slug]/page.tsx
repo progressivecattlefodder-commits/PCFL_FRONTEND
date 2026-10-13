@@ -148,7 +148,7 @@ export default function ProductDetailPage() {
             )}
 
             <div className="flex flex-wrap gap-4">
-              <a href="tel:+9779802012000" className="btn-primary">
+              <a href="tel: 01 5930425" className="btn-primary">
                 <Phone className="w-4 h-4" /> Contact Us Now
               </a>
               <Link
