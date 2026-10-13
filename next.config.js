@@ -2,7 +2,7 @@
 const nextConfig = {
   output: 'standalone',
   images: {
-    unoptimized: true, // <-- This completely bypasses the Next.js image optimization proxy (fixing the 530 error)
+    unoptimized: true, 
     remotePatterns: [
       {
         protocol: 'https',
@@ -26,9 +26,9 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: process.env.NODE_ENV === 'production' 
-          ? 'https://backend.progressivecattlefodderindustries.com/api/:path*' 
-          : 'http://localhost:8080/api/:path*',
+        destination: process.env.NODE_ENV === 'production'
+       ? 'https://pcfl-backend.onrender.com/api/:path*'
+        : 'http://localhost:8080/api/:path*',
       },
     ];
   },
