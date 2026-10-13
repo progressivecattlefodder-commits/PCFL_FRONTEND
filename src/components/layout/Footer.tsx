@@ -9,11 +9,13 @@ import { ContactInfo } from '@/types';
 import { IMAGE } from '@/lib/assets';
 
 const defaultContact: ContactInfo = {
+  phone: '+977-9714503903',
   phone_cor: '+977-9714503903 / +977-9714503906 / 01 5930425',
   phone_pro: '+977-9855089486',
   email: 'progressive2078cattle@gmail.com',
   address_cor: 'Chapali, Budhanilkantha-03, Kathmandu',
   address_pro: 'Sarlahi, Madhesh, Nepal',
+  address: 'Chapali, Budhanilkantha-03, Kathmandu',
   social: {
     facebook: 'https://www.facebook.com/profile.php?id=61592841761281',
     instagram: '#',

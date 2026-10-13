@@ -112,6 +112,7 @@ export interface ContactInfo {
   email: string;
   address_cor: string;
   address_pro: string;
+  address: string;
   social: {
     facebook?: string;
     instagram?: string;
