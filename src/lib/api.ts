@@ -106,6 +106,8 @@ export interface ContactInfo {
   phone_pro: string;
   email: string;
   address: string;
+  address_cor: string;
+  address_pro: string;
   social: {
     facebook?: string;
     instagram?: string;
