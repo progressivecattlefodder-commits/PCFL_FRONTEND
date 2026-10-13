@@ -13,7 +13,7 @@ const navLinks = [
     label: 'Products and Services',
     href: '/products',
     children: [
-      { label: 'Cattle Feed', href: '/products/cattle-feed' },
+      { label: 'Maize Silage', href: '/products/maize-silage' },
       { label: 'Mash Cattle Feed', href: '/products/mash-cattle-feed' },
     ],
   },

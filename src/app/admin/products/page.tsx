@@ -344,7 +344,7 @@ export default function AdminProductsPage() {
                 onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
               >
                 <option>Cattle Feed</option>
-                <option>Core Silage</option>
+                <option>Maize Silage</option>
                 <option>Supplements</option>
               </select>
             </div>

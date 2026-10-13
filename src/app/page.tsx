@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Phone, ArrowRight, Leaf, Award, Users, CheckCircle } from 'lucide-react';
@@ -24,9 +24,13 @@ const fallbackHero: HeroSection = {
   updated_at: '',
 };
 
-// Video paths inside the public folder (/public/videos/)
-const DESKTOP_VIDEO_SRC = '/videos/desktop.mp4';
-const MOBILE_VIDEO_SRC = '/videos/mobile.mp4';
+// Extend Window interface to recognize the YouTube IFrame API
+declare global {
+  interface Window {
+    YT: any;
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
 
 const getProductImage = (product: Product, index: number) => {
   if (product.image_url) return product.image_url;
@@ -45,24 +49,58 @@ const getProductImage = (product: Product, index: number) => {
 };
 
 function HeroBackgroundVideo() {
+  const playerRef = useRef<any>(null);
+
+  useEffect(() => {
+    // 1. Load the YouTube IFrame API script if it isn't already loaded
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+    }
+
+    // 2. Initialize the player when the API is ready
+    const initPlayer = () => {
+      window.YT.ready(() => {
+        playerRef.current = new window.YT.Player('youtube-bg-player', {
+          events: {
+            onReady: (event: { target: { setPlaybackQuality: (arg0: string) => void; playVideo: () => void; mute: () => void; }; }) => {
+              event.target.setPlaybackQuality('hd1080');
+              event.target.mute();
+              event.target.playVideo();
+            },
+            onStateChange: (event: { data: number; target: { seekTo: (arg0: number, arg1: boolean) => void; playVideo: () => void; setPlaybackQuality: (arg0: string) => void; }; }) => {
+              if (event.data === window.YT.PlayerState.ENDED) {
+                event.target.seekTo(5, true);
+                event.target.playVideo();
+              }
+              event.target.setPlaybackQuality('hd1080');
+            },
+          },
+        });
+      });
+    };
+
+    if (window.YT && window.YT.Player) {
+      initPlayer();
+    } else {
+      window.onYouTubeIframeAPIReady = initPlayer;
+    }
+  }, []);
+
   return (
-    <div className="absolute inset-0 w-full h-full overflow-hidden bg-pcfi-green-900">
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        aria-hidden="true"
-        className="w-full h-full object-cover bg-pcfi-green-900 scale-105"
-      >
-        {/* Large screens: Desktops, Laptops, Tablets (>=768px) */}
-        <source src={DESKTOP_VIDEO_SRC} media="(min-width: 768px)" type="video/mp4" />
-
-        {/* Small screens: Mobile Phones (<768px) */}
-        <source src={MOBILE_VIDEO_SRC} type="video/mp4" />
-
-        Your browser does not support HTML video.
-      </video>
+    <div className="absolute inset-0 w-full h-full overflow-hidden bg-pcfi-green-900 pointer-events-none">
+      <div className="absolute inset-0 w-full h-full scale-[1.3] pointer-events-none">
+        <iframe
+          id="youtube-bg-player"
+          className="w-full h-full object-cover"
+          src="https://www.youtube.com/embed/22X1PbQf9J4?enablejsapi=1&autoplay=1&mute=1&loop=1&playlist=22X1PbQf9J4&start=5&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&fs=0"
+          title="YouTube video player"
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        />
+      </div>
 
       {/* Dark tint layer to help with overall contrast */}
       <div className="absolute inset-0 bg-black/40 pointer-events-none" />
@@ -296,14 +334,14 @@ export default function HomePage() {
       </section>
 
       {/* Mission & Vision */}
-      <section className="py-16 bg-pcfi-green-800 text-white">
+      <section className="py-16 bg-grey-800 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <p className="text-pcfi-gold-400 font-semibold text-sm uppercase tracking-widest mb-2">Who We Are</p>
+            <p className="text-pcfi-green-700 font-bold text-md uppercase tracking-widest mb-2">Who We Are</p>
             <h2 className="font-display text-3xl md:text-4xl font-bold text-white">Our Mission & Vision</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            <div className="bg-pcfi-green-700/50 border border-pcfi-green-600 rounded-2xl p-8">
+            <div className="bg-pcfi-green-700 border border-pcfi-green-600 rounded-2xl p-8">
               <div className="w-12 h-12 bg-pcfi-gold-500 rounded-xl flex items-center justify-center mb-4">
                 <Award className="w-6 h-6 text-white" />
               </div>
@@ -314,7 +352,7 @@ export default function HomePage() {
                 trusted source of premium livestock nutrition products in domestic and international markets.
               </p>
             </div>
-            <div className="bg-pcfi-green-700/50 border border-pcfi-green-600 rounded-2xl p-8">
+            <div className="bg-pcfi-green-700 border border-pcfi-green-600 rounded-2xl p-8">
               <div className="w-12 h-12 bg-pcfi-gold-500 rounded-xl flex items-center justify-center mb-4">
                 <Users className="w-6 h-6 text-white" />
               </div>
