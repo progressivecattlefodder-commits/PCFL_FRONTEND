@@ -102,6 +102,8 @@ export interface DashboardStats {
 
 export interface ContactInfo {
   phone: string;
+  phone_cor: string;
+  phone_pro: string;
   email: string;
   address: string;
   social: {
